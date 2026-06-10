@@ -1,8 +1,7 @@
 import React from 'react';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function Stepper({ steps, current, maxVisited, onJump }) {
-  const canJump = (i) => i <= maxVisited || i === current;
+export default function Stepper({ steps, current, onJump }) {
   const canGoPrev = current > 0;
   const canGoNext = current < steps.length - 1;
 
@@ -12,7 +11,7 @@ export default function Stepper({ steps, current, maxVisited, onJump }) {
       <button
         onClick={() => canGoPrev && onJump && onJump(current - 1)}
         disabled={!canGoPrev}
-        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-200 ${
+        className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-all duration-200 ${
           canGoPrev
             ? 'border-[#d8d8d4] bg-white text-[#14171a] hover:border-[#1a7a4b] hover:bg-[#1a7a4b] hover:text-white hover:shadow-md cursor-pointer'
             : 'border-[#ececea] bg-[#f5f5f2] text-[#c4c4c0] cursor-not-allowed'
@@ -20,15 +19,15 @@ export default function Stepper({ steps, current, maxVisited, onJump }) {
         aria-label="Previous step"
         title="Previous step"
       >
-        <ChevronLeft size={16} />
+        <ChevronLeft size={18} />
       </button>
 
-      {/* Steps scroll area */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-scroll flex-1">
+      {/* Steps */}
+      <div className="flex items-center gap-1 flex-1 justify-between overflow-hidden">
         {steps.map((s, i) => {
           const done = i < current;
           const active = i === current;
-          const clickable = canJump(i);
+          const clickable = true;
 
           return (
             <button
@@ -64,7 +63,7 @@ export default function Stepper({ steps, current, maxVisited, onJump }) {
                 {done ? <Check size={13} /> : i + 1}
               </span>
               <span
-                className={`text-[12px] uppercase tracking-wider whitespace-nowrap transition-colors ${
+                className={`text-[13px] uppercase tracking-wider whitespace-nowrap transition-colors ${
                   active
                     ? 'text-[#14171a] font-semibold'
                     : done
@@ -76,12 +75,12 @@ export default function Stepper({ steps, current, maxVisited, onJump }) {
               </span>
               {clickable && !active && (
                 <span className="w-0 overflow-hidden group-hover:w-4 group-hover:ml-0.5 transition-all duration-200">
-                  <ChevronRight size={12} className="text-[#1a7a4b] flex-shrink-0" />
+                  <ChevronRight size={14} className="text-[#1a7a4b] flex-shrink-0" />
                 </span>
               )}
               {i < steps.length - 1 && (
                 <span
-                  className={`w-6 h-px transition-colors ${
+                  className={`w-8 h-px transition-colors ${
                     done ? 'bg-[#1a7a4b]' : 'bg-[#d8d8d4]'
                   }`}
                 />
@@ -95,7 +94,7 @@ export default function Stepper({ steps, current, maxVisited, onJump }) {
       <button
         onClick={() => canGoNext && onJump && onJump(current + 1)}
         disabled={!canGoNext}
-        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-200 ${
+        className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-all duration-200 ${
           canGoNext
             ? 'border-[#d8d8d4] bg-white text-[#14171a] hover:border-[#1a7a4b] hover:bg-[#1a7a4b] hover:text-white hover:shadow-md cursor-pointer'
             : 'border-[#ececea] bg-[#f5f5f2] text-[#c4c4c0] cursor-not-allowed'
@@ -103,7 +102,7 @@ export default function Stepper({ steps, current, maxVisited, onJump }) {
         aria-label="Next step"
         title="Next step"
       >
-        <ChevronRight size={16} />
+        <ChevronRight size={18} />
       </button>
     </div>
   );

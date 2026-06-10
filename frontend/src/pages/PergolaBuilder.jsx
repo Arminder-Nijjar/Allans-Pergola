@@ -73,8 +73,8 @@ export default function PergolaBuilder() {
       {/* Stepper bar */}
       {!submitted && (
         <div className="border-b border-[#ececea] bg-white sticky top-[58px] z-10">
-          <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-3 overflow-x-auto pb-scroll">
-            <Stepper steps={STEPS} current={stepIdx} maxVisited={maxVisitedStep} onJump={setStepIdx} />
+          <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-3">
+            <Stepper steps={STEPS} current={stepIdx} onJump={setStepIdx} />
           </div>
         </div>
       )}

@@ -157,14 +157,14 @@ body {
 
 /* Stepper */
 .pb-step-dot {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
+  font-size: 13px;
   border: 1px solid var(--pb-line-2);
   background: #fff;
   color: var(--pb-ink-2);

@@ -29,7 +29,8 @@ export default function PergolaBuilder() {
   // Clamp in case the step list shrinks (e.g. switching to the 10x12 kit)
   useEffect(() => {
     if (stepIdx > STEPS.length - 1) setStepIdx(STEPS.length - 1);
-  }, [STEPS.length, stepIdx]);
+    if (maxVisitedStep > STEPS.length - 1) setMaxVisitedStep(STEPS.length - 1);
+  }, [STEPS.length, stepIdx, maxVisitedStep]);
 
   const step = submitted ? null : STEPS[Math.min(stepIdx, STEPS.length - 1)];
   const allowEdit = step && (step.id === 'screens' || step.id === 'walls' || step.id === 'dimensions');

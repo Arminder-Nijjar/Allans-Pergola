@@ -1,0 +1,277 @@
+/* Pergola Builder — Modern Minimal */
+
+:root {
+  --pb-bg: #fafaf7;
+  --pb-surface: #ffffff;
+  --pb-ink: #14171a;
+  --pb-ink-2: #5b6368;
+  --pb-line: #ececea;
+  --pb-line-2: #d8d8d4;
+  --pb-accent: #1a7a4b;
+  --pb-accent-soft: #e7f1ea;
+  --pb-amber: #c98a2a;
+  --pb-radius: 14px;
+  --pb-shadow: 0 1px 2px rgba(20,23,26,0.04), 0 8px 24px rgba(20,23,26,0.06);
+}
+
+html, body, #root, .App { height: 100%; }
+body {
+  background: var(--pb-bg);
+  color: var(--pb-ink);
+  font-family: "Manrope", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.pb-display {
+  font-family: "Fraunces", "Cormorant Garamond", Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+.pb-mono {
+  font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  letter-spacing: 0.02em;
+}
+
+.pb-card {
+  background: var(--pb-surface);
+  border: 1px solid var(--pb-line);
+  border-radius: var(--pb-radius);
+}
+
+.pb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pb-ink-2);
+  background: #f3f3ef;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--pb-line);
+}
+
+.pb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid transparent;
+  transition: background-color .18s ease, transform .12s ease, border-color .18s ease, color .18s ease;
+  cursor: pointer;
+  user-select: none;
+}
+.pb-btn:active { transform: translateY(1px); }
+.pb-btn-primary { background: var(--pb-ink); color: #fff; }
+.pb-btn-primary:hover { background: #000; }
+.pb-btn-ghost { background: transparent; color: var(--pb-ink); border-color: var(--pb-line-2); }
+.pb-btn-ghost:hover { background: #f3f3ef; }
+.pb-btn-accent { background: var(--pb-accent); color: #fff; }
+.pb-btn-accent:hover { background: #1f6b3f; }
+.pb-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.pb-input {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--pb-line-2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--pb-ink);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.pb-input:focus {
+  outline: none;
+  border-color: var(--pb-ink);
+  box-shadow: 0 0 0 4px rgba(20,23,26,0.06);
+}
+
+.pb-tile {
+  border: 1px solid var(--pb-line);
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  cursor: pointer;
+  transition: border-color .18s ease, background-color .18s ease, transform .12s ease;
+  text-align: left;
+}
+.pb-tile:hover { border-color: #b0b0a8; }
+.pb-tile-active {
+  border-color: var(--pb-ink);
+  background: #faf8f3;
+  box-shadow: inset 0 0 0 1px var(--pb-ink);
+}
+
+.pb-swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.08);
+  position: relative;
+  cursor: pointer;
+}
+.pb-swatch::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  transition: border-color .15s ease;
+}
+.pb-swatch-active::after { border-color: var(--pb-ink); }
+
+/* Range slider */
+.pb-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(to right, var(--pb-ink) var(--pb-pct, 50%), var(--pb-line-2) var(--pb-pct, 50%));
+  border-radius: 999px;
+  outline: none;
+}
+.pb-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border: 2px solid var(--pb-ink);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.pb-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border: 2px solid var(--pb-ink);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Stepper */
+.pb-step-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  border: 1px solid var(--pb-line-2);
+  background: #fff;
+  color: var(--pb-ink-2);
+}
+.pb-step-dot-active { background: var(--pb-ink); color: #fff; border-color: var(--pb-ink); }
+.pb-step-dot-done { background: var(--pb-accent); color: #fff; border-color: var(--pb-accent); }
+
+.pb-fadeup { animation: pbFadeUp .35s ease both; }
+@keyframes pbFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Side-clickable hint */
+.pb-clickhint {
+  background: #f8f5ed;
+  border: 1px dashed #d6c89b;
+  color: #6b5b1e;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+/* Subtle background canvas wrapper */
+.pb-viewer-frame {
+  background:
+    radial-gradient(120% 80% at 50% 0%, #e8eef0 0%, #d9e1e4 45%, #c4cdd1 100%);
+  border-radius: var(--pb-radius);
+  border: 1px solid var(--pb-line);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Scrollbar polish */
+.pb-scroll::-webkit-scrollbar { width: 8px; }
+.pb-scroll::-webkit-scrollbar-track { background: transparent; }
+.pb-scroll::-webkit-scrollbar-thumb { background: #e0e0dc; border-radius: 999px; }
+.pb-scroll::-webkit-scrollbar-thumb:hover { background: #c8c8c2; }
+
+/* Numeric chip */
+.pb-num-chip {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  background: #f3f3ef;
+  border: 1px solid var(--pb-line);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+/* Mobile bottom bar */
+.pb-bottom-bar {
+  background: #fff;
+  border-top: 1px solid var(--pb-line);
+  box-shadow: 0 -8px 30px rgba(0,0,0,0.06);
+}
+
+/* ---------- Mobile optimisations ---------- */
+
+/* Sticky step navigation on phones (with notch-safe padding) */
+@media (max-width: 1023px) {
+  .pb-mobile-nav {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    margin-left: -20px;
+    margin-right: -20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.06);
+    z-index: 5;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Prevent iOS Safari auto-zoom when focusing inputs (<16px triggers zoom) */
+  .pb-input,
+  input[type="number"],
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Comfortable 44px+ touch targets */
+  .pb-btn { padding: 13px 22px; min-height: 46px; }
+  .pb-tile { padding: 16px; }
+
+  /* Larger, easier range-slider thumbs */
+  input[type="range"]::-webkit-slider-thumb { width: 26px; height: 26px; }
+  input[type="range"]::-moz-range-thumb { width: 26px; height: 26px; }
+
+  /* Smooth momentum scrolling for the step panel */
+  .pb-scroll { -webkit-overflow-scrolling: touch; }
+
+  /* Remove sticky-hover artefacts on touch devices */
+  .pb-tile:hover { border-color: var(--pb-line); }
+  .pb-tile-active:hover { border-color: var(--pb-ink); }
+}
+
+/* Disable hover-only effects on any coarse-pointer (touch) device */
+@media (hover: none) {
+  .pb-btn-ghost:hover { background: transparent; }
+  .pb-btn-primary:hover { background: var(--pb-ink); }
+  .pb-btn-accent:hover { background: var(--pb-accent); }
+}

@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+body {
+  margin: 0;
+  font-family: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #fafaf7;
+}
+
+@layer base {
+  :root {
+    --background: 60 9% 97%;
+    --foreground: 210 10% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 10% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 10% 9%;
+    --primary: 210 10% 9%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 60 6% 95%;
+    --secondary-foreground: 210 10% 9%;
+    --muted: 60 6% 95%;
+    --muted-foreground: 215 6% 40%;
+    --accent: 60 6% 95%;
+    --accent-foreground: 210 10% 9%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 60 6% 91%;
+    --input: 60 6% 91%;
+    --ring: 210 10% 9%;
+    --radius: 0.875rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+}

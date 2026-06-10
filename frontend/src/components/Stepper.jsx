@@ -40,9 +40,11 @@ export default function Stepper({ steps, current, maxVisited, onJump }) {
                   onJump && onJump(i);
                 }
               }}
-              className={`flex items-center gap-2 flex-shrink-0 group transition-opacity ${
-                clickable ? 'cursor-pointer' : 'cursor-default opacity-60'
-              }`}
+              className={`flex items-center gap-2 flex-shrink-0 group rounded-lg px-2 py-1.5 -mx-2 -my-1.5 transition-all duration-200 ${
+                clickable
+                  ? 'cursor-pointer hover:bg-[#f0f7f3]'
+                  : 'cursor-default opacity-50'
+              } ${active ? 'bg-[#f0f7f3]' : ''}`}
               data-testid={`step-dot-${s.id}`}
               role="tab"
               aria-selected={active}
@@ -55,7 +57,7 @@ export default function Stepper({ steps, current, maxVisited, onJump }) {
                   active ? 'pb-step-dot-active' : ''
                 } ${done ? 'pb-step-dot-done' : ''} ${
                   clickable && !active
-                    ? 'group-hover:ring-2 group-hover:ring-[#1a7a4b]/30 group-hover:scale-110'
+                    ? 'group-hover:ring-[3px] group-hover:ring-[#1a7a4b]/40 group-hover:scale-110 group-hover:shadow-sm'
                     : ''
                 }`}
               >
@@ -68,10 +70,15 @@ export default function Stepper({ steps, current, maxVisited, onJump }) {
                     : done
                     ? 'text-[#1a7a4b]'
                     : 'text-[#5b6368]'
-                } ${clickable ? 'group-hover:text-[#1a7a4b] group-hover:underline underline-offset-2' : ''}`}
+                } ${clickable && !active ? 'group-hover:text-[#1a7a4b] group-hover:font-semibold' : ''}`}
               >
                 {s.label}
               </span>
+              {clickable && !active && (
+                <span className="w-0 overflow-hidden group-hover:w-4 group-hover:ml-0.5 transition-all duration-200">
+                  <ChevronRight size={12} className="text-[#1a7a4b] flex-shrink-0" />
+                </span>
+              )}
               {i < steps.length - 1 && (
                 <span
                   className={`w-6 h-px transition-colors ${

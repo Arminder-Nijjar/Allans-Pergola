@@ -19,6 +19,7 @@ import { getSteps } from '../utils/steps';
 export default function PergolaBuilder() {
   const [cfg, setCfg] = useState(DEFAULT_CONFIG);
   const [stepIdx, setStepIdx] = useState(0);
+  const [maxVisitedStep, setMaxVisitedStep] = useState(0);
   const [submitted, setSubmitted] = useState(null);
   const [viewerOpenMobile, setViewerOpenMobile] = useState(true);
 
@@ -33,12 +34,19 @@ export default function PergolaBuilder() {
   const step = submitted ? null : STEPS[Math.min(stepIdx, STEPS.length - 1)];
   const allowEdit = step && (step.id === 'screens' || step.id === 'walls' || step.id === 'dimensions');
 
-  const next = () => setStepIdx((i) => Math.min(STEPS.length - 1, i + 1));
+  const next = () => {
+    setStepIdx((i) => {
+      const nextI = Math.min(STEPS.length - 1, i + 1);
+      setMaxVisitedStep((m) => Math.max(m, nextI));
+      return nextI;
+    });
+  };
   const back = () => setStepIdx((i) => Math.max(0, i - 1));
 
   const restart = () => {
     setCfg(DEFAULT_CONFIG);
     setStepIdx(0);
+    setMaxVisitedStep(0);
     setSubmitted(null);
   };
 
@@ -65,7 +73,7 @@ export default function PergolaBuilder() {
       {!submitted && (
         <div className="border-b border-[#ececea] bg-white sticky top-[58px] z-10">
           <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-3 overflow-x-auto pb-scroll">
-            <Stepper steps={STEPS} current={stepIdx} onJump={(i) => i <= stepIdx + 1 && setStepIdx(i)} />
+            <Stepper steps={STEPS} current={stepIdx} maxVisited={maxVisitedStep} onJump={setStepIdx} />
           </div>
         </div>
       )}

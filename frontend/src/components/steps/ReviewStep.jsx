@@ -1,7 +1,7 @@
 import React from 'react';
 import { StepHeader } from './_shared';
 import { POST_COLORS, LOUVER_COLORS, SCREEN_COLORS, WALL_COLORS, LIGHT_COLORS } from '../../data/catalog';
-import { postPlan, louverSetCount, louverOperation, screenOperation } from '../../utils/pergolaRules';
+import { totalPostPlan, louverSetCount, louverOperation, screenOperation } from '../../utils/pergolaRules';
 
 function colorName(list, id) {
   return (list.find((c) => c.id === id) || { name: id }).name;
@@ -10,7 +10,7 @@ function colorName(list, id) {
 export default function ReviewStep({ cfg, stepNum, total }) {
   // Use first section for aggregate stats
   const section = cfg.sections[0];
-  const plan = postPlan(cfg, section.id);
+  const plan = totalPostPlan(cfg);
   const sets = louverSetCount(section);
   const lop = louverOperation(section, cfg);
   const sop = screenOperation(section);

@@ -122,6 +122,39 @@ export function postPlan(cfg, sectionId) {
   };
 }
 
+// Combine post counts across all sections.
+// For L-shape layouts, 2 posts are shared at the junction so we subtract them.
+export function totalPostPlan(cfg) {
+  if (cfg.layout !== 'l-shape' || cfg.sections.length < 2) {
+    const plan = postPlan(cfg, cfg.sections[0]?.id);
+    return plan;
+  }
+
+  let totalCorners = 0;
+  let totalExtras = 0;
+  const allExtraPosts = [];
+
+  for (const section of cfg.sections) {
+    const plan = postPlan(cfg, section.id);
+    totalCorners += plan.cornerPosts;
+    totalExtras += plan.extras;
+    allExtraPosts.push(...plan.extraPosts);
+  }
+
+  // L-shape: two sections share 2 posts at the junction
+  totalCorners = Math.max(0, totalCorners - 2);
+
+  return {
+    cornerPosts: totalCorners,
+    extras: totalExtras,
+    extraSides: [], // not used in aggregate
+    extraSideCounts: {},
+    mandatoryExtraSides: [],
+    extraPosts: allExtraPosts,
+    total: totalCorners + totalExtras,
+  };
+}
+
 export function oppositeSide(side) {
   return { front: 'back', back: 'front', left: 'right', right: 'left' }[side];
 }

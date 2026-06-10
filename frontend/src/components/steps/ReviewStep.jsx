@@ -22,6 +22,10 @@ export default function ReviewStep({ cfg, stepNum, total }) {
   const layoutLabel = cfg.layout === 'l-shape' ? 'L-Shape' : cfg.layout === '10x12-kit' ? '10×12 Standard Kit' : 'Horizontal';
   rows.push({ label: 'Layout', value: `${layoutLabel} (${sectionCount} section${sectionCount > 1 ? 's' : ''})` });
 
+  // Ground type
+  const groundMap = { gravel: 'Gravel', grass: 'Grass / Lawn', concrete: 'Concrete Slab', paving: 'Paving Stones' };
+  rows.push({ label: 'Ground Surface', value: groundMap[cfg.groundType] || cfg.groundType });
+
   // Style
   const styleLabel = cfg.style === 'attached' ? `Attached (on ${cfg.attachedSide})`
     : cfg.style === '10x12-kit' ? '10×12 Kit'

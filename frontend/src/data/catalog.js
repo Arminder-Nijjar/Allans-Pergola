@@ -45,6 +45,13 @@ export const STYLES = [
   { id: '10x12-kit', label: '10×12 Kit', desc: 'Standard 10×12 ft kit with 9 ft height. Premium pre-configured option.' },
 ];
 
+export const GROUND_TYPES = [
+  { id: 'gravel', label: 'Gravel', desc: 'Loose stone base — ideal for drainage and permeability.' },
+  { id: 'grass', label: 'Grass / Lawn', desc: 'Natural turf — may require prep work before installation.' },
+  { id: 'concrete', label: 'Concrete Slab', desc: 'Solid poured concrete — best for anchoring and stability.' },
+  { id: 'paving', label: 'Paving Stones', desc: 'Interlocking pavers — level surface with good drainage.' },
+];
+
 export const LAYOUTS = [
   { id: 'horizontal', label: 'Horizontal', desc: 'Single rectangular pergola section. Classic design.' },
   { id: 'l-shape', label: 'L-Shape', desc: 'Two connected sections at 90° angle. Expands your coverage.' },
@@ -107,4 +114,5 @@ export const DEFAULT_CONFIG = {
   kitLouverOperation: 'motorized',
   kitLightSides: 'front-back',
   addOns: {},
+  groundType: 'gravel',
 };

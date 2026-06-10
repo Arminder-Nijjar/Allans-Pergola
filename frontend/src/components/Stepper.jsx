@@ -39,7 +39,7 @@ export default function Stepper({ steps, current, onJump }) {
                   onJump && onJump(i);
                 }
               }}
-              className={`flex items-center gap-2 flex-shrink-0 group rounded-lg px-2 py-1.5 -mx-2 -my-1.5 transition-all duration-200 ${
+              className={`flex items-center gap-2 flex-shrink-0 group rounded-lg px-3 py-2 transition-all duration-200 ${
                 clickable
                   ? 'cursor-pointer hover:bg-[#f0f7f3]'
                   : 'cursor-default opacity-50'

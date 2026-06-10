@@ -1,6 +1,6 @@
 import React from 'react';
 import { StepHeader } from './_shared';
-import { LAYOUTS, L_SHAPE_CONFIGS } from '../../data/catalog';
+import { LAYOUTS, L_SHAPE_CONFIGS, GROUND_TYPES } from '../../data/catalog';
 import { Check } from 'lucide-react';
 
 export default function LayoutStep({ cfg, setCfg, stepNum, total }) {
@@ -39,6 +39,10 @@ export default function LayoutStep({ cfg, setCfg, stepNum, total }) {
     setCfg((c) => ({ ...c, lShapeConfig: configId }));
   };
 
+  const handleGroundChange = (groundId) => {
+    setCfg((c) => ({ ...c, groundType: groundId }));
+  };
+
   return (
     <div className="pb-fadeup">
       <StepHeader
@@ -68,6 +72,32 @@ export default function LayoutStep({ cfg, setCfg, stepNum, total }) {
             </button>
           );
         })}
+      </div>
+
+      {/* Ground Type */}
+      <div className="mt-8">
+        <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3">
+          What is the ground surface?
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {GROUND_TYPES.map((g) => {
+            const active = cfg.groundType === g.id;
+            return (
+              <button
+                key={g.id}
+                data-testid={`ground-${g.id}`}
+                onClick={() => handleGroundChange(g.id)}
+                className={`pb-tile text-left ${active ? 'pb-tile-active' : ''}`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <span className="pb-display text-sm font-semibold">{g.label}</span>
+                  {active && <Check size={16} className="text-[#1a7a4b] flex-shrink-0" />}
+                </div>
+                <p className="text-xs text-[#5b6368] leading-snug">{g.desc}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {cfg.layout === 'l-shape' && (

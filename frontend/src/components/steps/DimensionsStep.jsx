@@ -231,42 +231,6 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
         </div>
       )}
 
-      {/* Louver Operation chooser — only for kit */}
-      {cfg.layout === '10x12-kit' && (
-        <div className="mt-4 pb-card p-4 md:p-6">
-          <p className="text-sm font-semibold text-[#14171a] mb-3">Louver Operation</p>
-          <div className="flex flex-wrap gap-3">
-            {[
-              { id: 'manual', label: 'Manual', desc: 'Hand-crank control' },
-              { id: 'motorized', label: 'Motorized', desc: 'Remote control' },
-            ].map((o) => (
-              <button
-                type="button"
-                key={o.id}
-                onClick={() => setCfg((c) => ({ ...c, louverOperation: o.id }))}
-                className={`relative pb-card px-4 py-3 text-left min-w-[100px] transition-all flex-1 sm:flex-none ${
-                  (cfg.louverOperation || 'manual') === o.id
-                    ? 'bg-[#e6f3eb] border-[#1a7a4b] shadow-sm'
-                    : 'bg-white hover:border-[#1a7a4b]'
-                }`}
-              >
-                {(cfg.louverOperation || 'manual') === o.id && (
-                  <span className="absolute top-2 right-2">
-                    <Check size={14} className="text-[#1a7a4b]" />
-                  </span>
-                )}
-                <p className="text-sm font-semibold text-[#14171a]">
-                  {o.label}
-                </p>
-                <p className={`text-[11px] mt-0.5 ${(cfg.louverOperation || 'manual') === o.id ? 'text-[#1a7a4b]' : 'text-[#5b6368]'}`}>
-                  {o.desc}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }

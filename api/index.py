@@ -16,8 +16,8 @@ import resend
 # Email configuration — uses Resend for delivery
 resend_api_key = os.environ.get("RESEND_API_KEY", "")
 from_email = os.environ.get("FROM_EMAIL", "noreply@allanslandscaping.ca")
-to_emails_env = os.environ.get("TO_EMAILS", "narminder1@gmail.com")
-to_emails = to_emails_env.split(",") if to_emails_env else ["narminder1@gmail.com"]
+to_emails_env = os.environ.get("TO_EMAILS", "jane@allans.blue")
+to_emails = to_emails_env.split(",") if to_emails_env else ["jane@allans.blue"]
 
 if resend_api_key:
     resend.api_key = resend_api_key

@@ -50,10 +50,18 @@ export default function PergolaBuilder() {
   // Notify when a shared design is loaded from URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('config')) {
-      toast.success('Shared design loaded', {
-        description: 'You are viewing a shared pergola design. Navigate through the steps to see all details.',
-      });
+    const encoded = params.get('config');
+    if (encoded) {
+      try {
+        const json = atob(decodeURIComponent(encoded));
+        const parsed = JSON.parse(json);
+        console.log('[ShareLink] Loaded config from URL:', parsed);
+        toast.success('Shared design loaded', {
+          description: `Layout: ${parsed.layout || 'unknown'}. Navigate the steps to see all details.`,
+        });
+      } catch (e) {
+        console.error('[ShareLink] Failed to parse URL config:', e);
+      }
     }
   }, []);
 

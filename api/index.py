@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from starlette.middleware.cors import CORSMiddleware
 import resend
 
-# Email configuration
+# Email configuration — uses Resend for delivery
 resend_api_key = os.environ.get("RESEND_API_KEY", "")
 from_email = os.environ.get("FROM_EMAIL", "noreply@allanslandscaping.ca")
 to_emails_env = os.environ.get("TO_EMAILS", "narminder1@gmail.com")

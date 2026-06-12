@@ -72,11 +72,11 @@ export function PostSlider({ side, section, cfg, onPositionChange, isMandatory =
             placeholder={`${minPos}-${maxPos}`}
           />
           <span className="text-xs text-[#5b6368]">ft</span>
-          {!isMandatory && onRemove && (
+          {onRemove && (
             <button
               onClick={onRemove}
               className="ml-1 p-1.5 rounded-md text-[#5b6368] hover:text-red-600 hover:bg-red-50 transition-colors"
-              title="Remove accessory post"
+              title={isMandatory ? 'Remove support post' : 'Remove accessory post'}
             >
               <X size={16} />
             </button>

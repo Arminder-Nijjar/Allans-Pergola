@@ -3,7 +3,7 @@ import { StepHeader, ColorSwatchRow } from './_shared';
 import { SCREEN_COLORS, SIDES } from '../../data/catalog';
 import { screenOperation, segmentsForSide } from '../../utils/pergolaRules';
 import { isSideFullyInterior, getLShapeAvailableSides, canPlaceScreenOnLShapeSegment, getScreenPlacementTooltip, getModules, isSideAvailableForLShape } from '../../utils/pergolaLayout';
-import { Trash2, MousePointerClick } from 'lucide-react';
+import { Trash2, MousePointerClick, Check } from 'lucide-react';
 
 export default function ScreensStep({ cfg, setCfg, stepNum, total }) {
   // Auto-enable screen edit mode on entering this step
@@ -17,7 +17,7 @@ export default function ScreensStep({ cfg, setCfg, stepNum, total }) {
   
   // Use first section for operation display
   const section = cfg.sections[0];
-  const op = screenOperation(section);
+  const op = screenOperation(section, cfg);
 
   const addOnSide = (sectionId, side, segmentIdx) => {
     if (cfg.style === 'attached' && cfg.attachedSide === side) return;
@@ -187,15 +187,41 @@ export default function ScreensStep({ cfg, setCfg, stepNum, total }) {
           )}
         </div>
         <div>
-          <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3">Operation (auto)</p>
-          <div className="pb-card p-4">
-            <p className="pb-display text-xl font-semibold">{op === 'manual' ? 'Manual' : 'Motorized'}</p>
-            <p className="text-xs text-[#5b6368] mt-1">
-              {op === 'manual'
-                ? 'Hand crank — for 10×12 or smaller.'
-                : 'Motorized — included for sizes larger than 10×12.'}
-            </p>
-          </div>
+          <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3">Operation</p>
+          {cfg.layout === '10x12-kit' ? (
+            <div className="pb-card p-4">
+              <p className="pb-display text-xl font-semibold">Manual</p>
+              <p className="text-xs text-[#5b6368] mt-1">Fixed — Standard Kit</p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {[
+                { id: 'manual', label: 'Manual', desc: 'Hand-crank control' },
+                { id: 'motorized', label: 'Motorized', desc: 'Remote control' },
+              ].map((o) => (
+                <button
+                  type="button"
+                  key={o.id}
+                  onClick={() => setCfg((c) => ({ ...c, screenOperation: o.id }))}
+                  className={`relative pb-card px-4 py-3 text-left min-w-[100px] transition-all ${
+                    (cfg.screenOperation || 'manual') === o.id
+                      ? 'bg-[#e6f3eb] border-[#1a7a4b] shadow-sm'
+                      : 'bg-white hover:border-[#1a7a4b]'
+                  }`}
+                >
+                  {(cfg.screenOperation || 'manual') === o.id && (
+                    <span className="absolute top-2 right-2">
+                      <Check size={14} className="text-[#1a7a4b]" />
+                    </span>
+                  )}
+                  <p className="text-sm font-semibold text-[#14171a]">{o.label}</p>
+                  <p className={`text-[11px] mt-0.5 ${(cfg.screenOperation || 'manual') === o.id ? 'text-[#1a7a4b]' : 'text-[#5b6368]'}`}>
+                    {o.desc}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

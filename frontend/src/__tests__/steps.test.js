@@ -23,9 +23,9 @@ describe('step flow', () => {
     expect(steps).toHaveLength(ALL_STEPS.length);
   });
 
-  test('10x12 kit skips layout, frame and lights', () => {
+  test('10x12 kit skips layout and frame', () => {
     const ids = getSteps({ layout: '10x12-kit' }).map((s) => s.id);
-    expect(ids).toEqual(['style', 'dimensions', 'walls', 'screens', 'add-ons', 'review', 'quote']);
+    expect(ids).toEqual(['style', 'dimensions', 'walls', 'screens', 'lights', 'add-ons', 'review', 'quote']);
   });
 
   test('kit flow still ends with add-ons -> review -> quote', () => {

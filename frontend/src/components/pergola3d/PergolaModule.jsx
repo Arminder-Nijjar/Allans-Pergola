@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { POST_COLORS, LOUVER_COLORS, SCREEN_COLORS, WALL_COLORS, LIGHT_COLORS } from '../../data/catalog';
 import { postPlan, segmentsForSide, louverSetCount } from '../../utils/pergolaRules';
@@ -20,6 +21,14 @@ const aluminumMaterial = (color) => (
     clearcoatRoughness={0.05}
   />
 );
+
+// Heater color from addOns config (white, black, or default)
+function addOnsHeaterColor(cfg) {
+  const color = cfg.addOns?.heaterColor;
+  if (color === 'white') return '#e8e8e8';
+  if (color === 'black') return '#1a1a1a';
+  return '#222';
+}
 
 // Memoized components for performance with proper cleanup
 const Post = React.memo(({ position, height, color }) => {
@@ -59,7 +68,7 @@ const Post = React.memo(({ position, height, color }) => {
 
 const Beam = React.memo(({ position, args, color }) => {
   const meshRef = React.useRef();
-  
+
   React.useEffect(() => {
     const mesh = meshRef.current;
     return () => {
@@ -69,7 +78,7 @@ const Beam = React.memo(({ position, args, color }) => {
       }
     };
   }, []);
-  
+
   // Premium rounded beam look with decorative trim
   return (
     <group position={position}>
@@ -82,6 +91,163 @@ const Beam = React.memo(({ position, args, color }) => {
       <mesh position={[0, args[1]/2 + 0.01, 0]} castShadow>
         <boxGeometry args={[args[0], 0.02, args[2]]} />
         {aluminumMaterial(color)}
+      </mesh>
+    </group>
+  );
+});
+
+// Wall-mounted patio heater bar mounted under top beam, facing inward
+const WallHeater = React.memo(({ side, x0, x1, z0, z1, height, color = '#222', offset = 0 }) => {
+  const HEATER_W = 0.85;
+  const HEATER_H = 0.18;
+  const HEATER_D = 0.10;
+  const MOUNT_Y = height - 0.02;
+
+  // Center of side with optional offset for multiple heaters
+  let cx, cz;
+  if (side === 'front' || side === 'back') {
+    cx = (x0 + x1) / 2 + offset;
+    cz = side === 'front' ? z1 : z0;
+  } else {
+    cx = side === 'left' ? x0 : x1;
+    cz = (z0 + z1) / 2 + offset;
+  }
+
+  let pos, rot;
+  if (side === 'front') {
+    pos = [cx, MOUNT_Y, cz - HEATER_D / 2 - 0.02];
+    rot = [0, Math.PI, 0];
+  } else if (side === 'back') {
+    pos = [cx, MOUNT_Y, cz + HEATER_D / 2 + 0.02];
+    rot = [0, 0, 0];
+  } else if (side === 'left') {
+    pos = [cx + HEATER_D / 2 + 0.02, MOUNT_Y, cz];
+    rot = [0, Math.PI / 2, 0];
+  } else {
+    pos = [cx - HEATER_D / 2 - 0.02, MOUNT_Y, cz];
+    rot = [0, -Math.PI / 2, 0];
+  }
+
+  return (
+    <group position={pos} rotation={rot}>
+      {/* Main heater body */}
+      <mesh castShadow>
+        <boxGeometry args={[HEATER_W, HEATER_H, HEATER_D]} />
+        <meshStandardMaterial color={color} roughness={0.4} metalness={0.6} />
+      </mesh>
+      {/* Glowing element strip */}
+      <mesh position={[0, 0, HEATER_D / 2 + 0.001]}>
+        <planeGeometry args={[HEATER_W - 0.08, HEATER_H - 0.05]} />
+        <meshStandardMaterial color="#ff7a33" emissive="#ff5a1a" emissiveIntensity={1.4} roughness={0.8} />
+      </mesh>
+      {/* Mount brackets */}
+      <mesh position={[-HEATER_W / 2 + 0.09, 0, -HEATER_D / 2 - 0.02]}>
+        <boxGeometry args={[0.035, HEATER_H + 0.04, 0.06]} />
+        <meshStandardMaterial color="#888" roughness={0.5} metalness={0.7} />
+      </mesh>
+      <mesh position={[HEATER_W / 2 - 0.09, 0, -HEATER_D / 2 - 0.02]}>
+        <boxGeometry args={[0.035, HEATER_H + 0.04, 0.06]} />
+        <meshStandardMaterial color="#888" roughness={0.5} metalness={0.7} />
+      </mesh>
+    </group>
+  );
+});
+
+// Green glow overlay on a post — fades over 2 seconds when outlet is added
+const PostGlow = React.memo(({ position, height }) => {
+  const meshRef = useRef();
+  const startTime = useRef(Date.now());
+
+  useFrame(() => {
+    const elapsed = (Date.now() - startTime.current) / 1000;
+    const progress = Math.min(elapsed / 2, 1);
+    const opacity = 1 - progress;
+    if (meshRef.current) {
+      meshRef.current.material.opacity = opacity * 0.6;
+      meshRef.current.material.transparent = true;
+      meshRef.current.visible = progress < 1;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={[position[0], height / 2, position[1]]}>
+      <boxGeometry args={[POST_THICK + 0.02, height + 0.02, POST_THICK + 0.02]} />
+      <meshBasicMaterial color="#22c55e" transparent opacity={0.6} depthWrite={false} />
+    </mesh>
+  );
+});
+
+// Green glow overlay on the top beam where heater is mounted — thick & bright so it's visible from any angle
+const BeamGlow = React.memo(({ position, args }) => {
+  const boxRef = useRef();
+  const startTime = useRef(Date.now());
+
+  useFrame(() => {
+    const elapsed = (Date.now() - startTime.current) / 1000;
+    const progress = Math.min(elapsed / 2.2, 1);
+    const ease = 1 - progress;
+    if (boxRef.current) {
+      boxRef.current.material.opacity = ease * 0.75;
+    }
+  });
+
+  const [len, h, d] = args;
+  const glowArgs = [len + 0.24, h + 0.24, d + 0.24];
+
+  return (
+    <mesh ref={boxRef} position={position}>
+      <boxGeometry args={glowArgs} />
+      <meshBasicMaterial color="#4ade80" transparent opacity={0.75} depthWrite={false} />
+    </mesh>
+  );
+});
+
+// Outlet on a post (~2ft / 0.6m above ground), facing inward toward pergola center
+const PostOutlet = React.memo(({ position, height, inwardDir }) => {
+  const OUTLET_Y = 0.6; // 2 ft in meters
+  const W = 0.14;  // width  (14cm)
+  const H = 0.16;  // height (16cm)
+  const D = 0.025; // protrusion depth
+  const POST_R = 0.08; // post half-thickness
+
+  // Place on post surface facing inward
+  const ox = position[0] + inwardDir[0] * POST_R;
+  const oz = position[1] + inwardDir[1] * POST_R;
+  const ry = Math.atan2(inwardDir[0], inwardDir[1]); // rotate to face inward
+
+  return (
+    <group position={[ox, OUTLET_Y, oz]} rotation={[0, ry, 0]}>
+      {/* Amber warning border ring — highly visible against any post */}
+      <mesh position={[0, 0, -0.002]} castShadow receiveShadow>
+        <boxGeometry args={[W + 0.015, H + 0.015, D * 0.4]} />
+        <meshStandardMaterial color="#f5a623" roughness={0.5} metalness={0.1} />
+      </mesh>
+      {/* White faceplate */}
+      <mesh position={[0, 0, D / 2]} castShadow receiveShadow>
+        <boxGeometry args={[W, H, D]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.3} metalness={0.05} />
+      </mesh>
+      {/* Inner dark socket ring */}
+      <mesh position={[0, 0, D + 0.002]}>
+        <circleGeometry args={[W * 0.22, 24]} />
+        <meshStandardMaterial color="#222" roughness={0.7} />
+      </mesh>
+      {/* Green indicator dot */}
+      <mesh position={[W * 0.28, H * 0.28, D + 0.004]}>
+        <circleGeometry args={[0.009, 12]} />
+        <meshStandardMaterial color="#1a7a4b" emissive="#1a7a4b" emissiveIntensity={0.6} />
+      </mesh>
+      {/* Screws in corners */}
+      {[[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sy], i) => (
+        <mesh key={i} position={[sx * W * 0.38, sy * H * 0.38, D + 0.003]}>
+          <circleGeometry args={[0.005, 8]} />
+          <meshStandardMaterial color="#bbb" roughness={0.4} metalness={0.6} />
+        </mesh>
+      ))}
+      {/* Mount box behind (sticks into post) */}
+      <mesh position={[0, 0, -POST_R * 0.55]} receiveShadow>
+        <boxGeometry args={[W * 0.85, H * 0.85, POST_R]} />
+        <meshStandardMaterial color="#d8d8d0" roughness={0.5} metalness={0.1} />
       </mesh>
     </group>
   );
@@ -404,111 +570,79 @@ function SectionHoverPlane() {
   return null;
 }
 
-// OPTIMIZED PERIMETER LIGHTING - Uses emissive materials, follows actual beam geometry
-// No expensive point lights - performance optimized
-const PerimeterLightStrip = React.memo(({ modules, color, intensity = 1.6, cfg }) => {
-  // Calculate light strips per module - follows actual beam paths
+// LED strip lights under beams — visible glowing strips with floor reflection
+const PerimeterLightStrip = React.memo(({ modules, color, intensity = 2.5, cfg }) => {
   const lightStrips = useMemo(() => {
     if (!modules.length) return [];
-    
-    const strips = [];
-    
-    modules.forEach((mod) => {
-      const x0 = mod.x;
-      const x1 = mod.x + mod.w;
-      const z0 = mod.z;
-      const z1 = mod.z + mod.d;
-      const y = mod.h - 0.02; // Just under the beam
-      
-      // Determine which sides have lights
-      let hasBackLight, hasFrontLight, hasLeftLight, hasRightLight;
 
+    const strips = [];
+
+    modules.forEach((mod) => {
+      const x0 = mod.x, x1 = mod.x + mod.w;
+      const z0 = mod.z, z1 = mod.z + mod.d;
+      const y = mod.h - 0.03; // just below beam
+
+      let hasBack, hasFront, hasLeft, hasRight;
       if (cfg.layout === '10x12-kit') {
         const s = cfg.kitLightSides || 'front-back';
-        if (s === 'none') {
-          hasBackLight = hasFrontLight = hasLeftLight = hasRightLight = false;
-        } else if (s === 'front-back') {
-          hasBackLight = hasFrontLight = true;
-          hasLeftLight = hasRightLight = false;
-        } else if (s === 'left-right') {
-          hasBackLight = hasFrontLight = false;
-          hasLeftLight = hasRightLight = true;
-        } else {
-          hasBackLight = hasFrontLight = hasLeftLight = hasRightLight = true;
-        }
+        if (s === 'none') { hasBack = hasFront = hasLeft = hasRight = false; }
+        else if (s === 'front-back') { hasBack = hasFront = true; hasLeft = hasRight = false; }
+        else if (s === 'left-right') { hasBack = hasFront = false; hasLeft = hasRight = true; }
+        else { hasBack = hasFront = hasLeft = hasRight = true; }
       } else {
-        // Skip attached side (house wall)
-        hasBackLight = cfg.style !== 'attached' || cfg.attachedSide !== 'back';
-        hasFrontLight = cfg.style !== 'attached' || cfg.attachedSide !== 'front';
-        hasLeftLight = cfg.style !== 'attached' || cfg.attachedSide !== 'left';
-        hasRightLight = cfg.style !== 'attached' || cfg.attachedSide !== 'right';
+        hasBack = cfg.style !== 'attached' || cfg.attachedSide !== 'back';
+        hasFront = cfg.style !== 'attached' || cfg.attachedSide !== 'front';
+        hasLeft = cfg.style !== 'attached' || cfg.attachedSide !== 'left';
+        hasRight = cfg.style !== 'attached' || cfg.attachedSide !== 'right';
       }
 
-      // Back light strip
-      if (hasBackLight) {
-        strips.push({
-          key: `light-${mod.sectionId}-back`,
-          pos: [(x0 + x1) / 2, y, z0],
-          args: [x1 - x0 - 0.3, 0.025, 0.05],
-          rot: 0
-        });
-      }
-
-      // Front light strip
-      if (hasFrontLight) {
-        strips.push({
-          key: `light-${mod.sectionId}-front`,
-          pos: [(x0 + x1) / 2, y, z1],
-          args: [x1 - x0 - 0.3, 0.025, 0.05],
-          rot: 0
-        });
-      }
-
-      // Left light strip
-      if (hasLeftLight) {
-        strips.push({
-          key: `light-${mod.sectionId}-left`,
-          pos: [x0, y, (z0 + z1) / 2],
-          args: [z1 - z0 - 0.3, 0.025, 0.05],
-          rot: Math.PI / 2
-        });
-      }
-
-      // Right light strip
-      if (hasRightLight) {
-        strips.push({
-          key: `light-${mod.sectionId}-right`,
-          pos: [x1, y, (z0 + z1) / 2],
-          args: [z1 - z0 - 0.3, 0.025, 0.05],
-          rot: Math.PI / 2
-        });
-      }
+      if (hasBack) strips.push({ key: `light-${mod.sectionId}-back`, pos: [(x0 + x1) / 2, y, z0], len: x1 - x0 - 0.3, rot: 0, target: [(x0 + x1) / 2, 0, z0] });
+      if (hasFront) strips.push({ key: `light-${mod.sectionId}-front`, pos: [(x0 + x1) / 2, y, z1], len: x1 - x0 - 0.3, rot: 0, target: [(x0 + x1) / 2, 0, z1] });
+      if (hasLeft) strips.push({ key: `light-${mod.sectionId}-left`, pos: [x0, y, (z0 + z1) / 2], len: z1 - z0 - 0.3, rot: Math.PI / 2, target: [x0, 0, (z0 + z1) / 2] });
+      if (hasRight) strips.push({ key: `light-${mod.sectionId}-right`, pos: [x1, y, (z0 + z1) / 2], len: z1 - z0 - 0.3, rot: Math.PI / 2, target: [x1, 0, (z0 + z1) / 2] });
     });
-    
+
     return strips;
   }, [modules, cfg]);
 
-  // Shared emissive material - reused for all strips
-  const emissiveMaterial = useMemo(() => {
-    return (
-      <meshStandardMaterial
-        color={color}
-        emissive={color}
-        emissiveIntensity={intensity}
-        toneMapped={false}
-      />
-    );
-  }, [color, intensity]);
+  const emissiveMat = useMemo(() => (
+    <meshStandardMaterial color={color} emissive={color} emissiveIntensity={intensity} toneMapped={false} />
+  ), [color, intensity]);
 
-  // Only use emissive materials - no expensive point lights
-  // This provides visual glow without performance impact
   return (
     <group>
       {lightStrips.map((strip) => (
-        <mesh key={strip.key} position={strip.pos} rotation={[0, strip.rot, 0]}>
-          <boxGeometry args={strip.args} />
-          {emissiveMaterial}
-        </mesh>
+        <group key={strip.key}>
+          {/* Glowing LED strip body */}
+          <mesh position={strip.pos} rotation={[0, strip.rot, 0]}>
+            <boxGeometry args={[strip.len, 0.05, 0.12]} />
+            {emissiveMat}
+          </mesh>
+          {/* Clear diffuser cap */}
+          <mesh position={[strip.pos[0], strip.pos[1] - 0.03, strip.pos[2]]} rotation={[0, strip.rot, 0]}>
+            <boxGeometry args={[strip.len, 0.012, 0.125]} />
+            <meshStandardMaterial color="#ffffff" transparent opacity={0.35} roughness={0.1} />
+          </mesh>
+          {/* Downward spotLight for floor pool reflection */}
+          <spotLight
+            position={strip.pos}
+            target-position={strip.target}
+            intensity={1.5}
+            angle={Math.PI / 3}
+            penumbra={0.8}
+            distance={12}
+            decay={2}
+            color={color}
+          />
+          {/* Small point light for ambient glow near strip */}
+          <pointLight
+            position={[strip.pos[0], strip.pos[1] + 0.1, strip.pos[2]]}
+            intensity={0.8}
+            distance={4}
+            decay={2}
+            color={color}
+          />
+        </group>
       ))}
     </group>
   );
@@ -576,8 +710,103 @@ function PergolaSection({ cfg, mod, onFaceClick, stepId }) {
     z1 = mod.z + mod.d;
   const height = mod.h;
   const section = cfg.sections.find((s) => s.id === sectionId);
-  
+
   const postColor = POST_COLORS.find((c) => c.id === cfg.postColor)?.hex || '#222';
+
+  // Track newly added heaters/outlets for flash animation
+  const prevHeaterKeysRef = useRef(new Set());
+  const prevOutletKeysRef = useRef(new Set());
+  const mountedRef = useRef(false);
+  const [activeFlashes, setActiveFlashes] = useState([]);
+
+  useEffect(() => {
+    const heaters = cfg.heaters || [];
+    const outlets = cfg.outlets || [];
+
+    const heaterKey = (h) => `${h.sectionId}-${h.side}-${h.index ?? 0}`;
+    const outletKey = (o) => `${o.sectionId}-${o.postKey}`;
+
+    const currentHKeys = new Set(heaters.map(heaterKey));
+    const currentOKeys = new Set(outlets.map(outletKey));
+
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      prevHeaterKeysRef.current = currentHKeys;
+      prevOutletKeysRef.current = currentOKeys;
+      return;
+    }
+
+    const prevHKeys = prevHeaterKeysRef.current;
+    const prevOKeys = prevOutletKeysRef.current;
+
+    const newGlows = [];
+
+    const cornerDefs = [
+      { id: 'bl', pos: [x0, z0], sides: ['back', 'left'] },
+      { id: 'br', pos: [x1, z0], sides: ['back', 'right'] },
+      { id: 'fr', pos: [x1, z1], sides: ['front', 'right'] },
+      { id: 'fl', pos: [x0, z1], sides: ['front', 'left'] },
+    ];
+
+    // Heaters: glow the top beam on that side
+    for (const h of heaters) {
+      if (h.sectionId !== sectionId) continue;
+      const key = heaterKey(h);
+      if (!prevHKeys.has(key)) {
+        let bPos, bArgs;
+        if (h.side === 'front') {
+          bPos = [(x0 + x1) / 2, height + BEAM_THICK / 2, z1];
+          bArgs = [x1 - x0, BEAM_THICK, BEAM_THICK];
+        } else if (h.side === 'back') {
+          bPos = [(x0 + x1) / 2, height + BEAM_THICK / 2, z0];
+          bArgs = [x1 - x0, BEAM_THICK, BEAM_THICK];
+        } else if (h.side === 'left') {
+          bPos = [x0, height + BEAM_THICK / 2, (z0 + z1) / 2];
+          bArgs = [BEAM_THICK, BEAM_THICK, z1 - z0];
+        } else {
+          bPos = [x1, height + BEAM_THICK / 2, (z0 + z1) / 2];
+          bArgs = [BEAM_THICK, BEAM_THICK, z1 - z0];
+        }
+        newGlows.push({ id: `glow-h-${key}`, type: 'beam', pos: bPos, args: bArgs });
+      }
+    }
+
+    // Outlets: glow the specific post
+    const plan = postPlan(cfg, sectionId);
+    for (const o of outlets) {
+      if (o.sectionId !== sectionId) continue;
+      const key = outletKey(o);
+      if (!prevOKeys.has(key)) {
+        let postPos = null;
+        const cornerMatch = cornerDefs.find((c) => `${sectionId}-corner-${c.id}` === o.postKey);
+        if (cornerMatch) {
+          postPos = cornerMatch.pos;
+        } else {
+          const extraMatch = plan.extraPosts.find((p) => p.positionKey === o.postKey);
+          if (extraMatch) {
+            const pm = extraMatch.position * FT_TO_M;
+            if (extraMatch.side === 'front') postPos = [x0 + pm, z1];
+            else if (extraMatch.side === 'back') postPos = [x0 + pm, z0];
+            else if (extraMatch.side === 'left') postPos = [x0, z0 + pm];
+            else postPos = [x1, z0 + pm];
+          }
+        }
+        if (postPos) {
+          newGlows.push({ id: `glow-o-${key}`, type: 'post', pos: postPos });
+        }
+      }
+    }
+
+    if (newGlows.length > 0) {
+      setActiveFlashes((prev) => [...prev, ...newGlows]);
+      setTimeout(() => {
+        setActiveFlashes((prev) => prev.filter((f) => !newGlows.some((ng) => ng.id === f.id)));
+      }, 2200);
+    }
+
+    prevHeaterKeysRef.current = currentHKeys;
+    prevOutletKeysRef.current = currentOKeys;
+  }, [cfg, cfg.heaters, cfg.outlets, sectionId, x0, x1, z0, z1, height]);
   const louverColor = LOUVER_COLORS.find((c) => c.id === cfg.louverColor)?.hex || '#eee';
   const screenColor = SCREEN_COLORS.find((c) => c.id === cfg.screenColor)?.hex || '#ddd';
 
@@ -610,6 +839,8 @@ function PergolaSection({ cfg, mod, onFaceClick, stepId }) {
   const isAttached = cfg.style === 'attached';
   const attachedSide = cfg.attachedSide;
   
+  const removedSet = useMemo(() => new Set(cfg.removedPostKeys || []), [cfg.removedPostKeys]);
+
   const corners = useMemo(() => {
     const all = [
       { id: 'bl', pos: [x0, z0], sides: ['back', 'left'] },
@@ -626,8 +857,8 @@ function PergolaSection({ cfg, mod, onFaceClick, stepId }) {
       // Remove corners that touch the attached side
       if (c.sides.includes(attachedSide)) return false;
       return true;
-    });
-  }, [x0, x1, z0, z1, isAttached, attachedSide, sectionId]);
+    }).filter((c) => !removedSet.has(`${sectionId}-corner-${c.id}`));
+  }, [x0, x1, z0, z1, isAttached, attachedSide, sectionId, removedSet]);
 
   const extraPosts = useMemo(() => {
     const posts = [];
@@ -753,6 +984,49 @@ function PergolaSection({ cfg, mod, onFaceClick, stepId }) {
         <DimLabel key={l.key} position={l.pos} text={l.text} />
       ))}
 
+      {/* Wall-mounted heaters for this section */}
+      {(cfg.heaters || []).filter((h) => h.sectionId === sectionId).map((h, i) => {
+        const sideLen = (h.side === 'front' || h.side === 'back') ? (x1 - x0) : (z1 - z0);
+        const canDouble = sideLen > 15 * FT_TO_M; // > 15 ft
+        const index = h.index ?? 0;
+        const offset = canDouble
+          ? (index === 0 ? -sideLen / 4 : sideLen / 4)
+          : 0;
+        return (
+          <WallHeater key={`heater-${sectionId}-${i}`} side={h.side} x0={x0} x1={x1} z0={z0} z1={z1} height={height} color={addOnsHeaterColor(cfg)} offset={offset} />
+        );
+      })}
+
+      {/* Outlets on posts for this section */}
+      {(cfg.outlets || []).filter((o) => o.sectionId === sectionId).map((o) => {
+        // Find post position from corners or extra posts
+        let postPos = null;
+        const cornerMatch = corners.find((c) => `${sectionId}-corner-${c.id}` === o.postKey);
+        if (cornerMatch) {
+          postPos = cornerMatch.pos;
+        } else {
+          const extraMatch = plan.extraPosts.find((p) => p.positionKey === o.postKey);
+          if (extraMatch) {
+            const pm = extraMatch.position * FT_TO_M;
+            if (extraMatch.side === 'front') postPos = [x0 + pm, z1];
+            else if (extraMatch.side === 'back') postPos = [x0 + pm, z0];
+            else if (extraMatch.side === 'left') postPos = [x0, z0 + pm];
+            else postPos = [x1, z0 + pm];
+          }
+        }
+        if (!postPos) return null;
+
+        // Compute inward direction (toward pergola center)
+        const cx = (x0 + x1) / 2;
+        const cz = (z0 + z1) / 2;
+        const dx = cx - postPos[0];
+        const dz = cz - postPos[1];
+        const len = Math.sqrt(dx * dx + dz * dz) || 1;
+        const inwardDir = [dx / len, dz / len];
+
+        return <PostOutlet key={`outlet-${o.postKey}`} position={postPos} height={height} inwardDir={inwardDir} />;
+      })}
+
       {/* Overall section dimensions at base */}
       {cfg.showDimensions && (
         <>
@@ -776,6 +1050,15 @@ function PergolaSection({ cfg, mod, onFaceClick, stepId }) {
 
       {/* Full-section hover glow for dimensions step */}
       <SectionHoverPlane />
+
+      {/* Green glow on beam (heater) or post (outlet) where item was just added */}
+      {activeFlashes.map((f) =>
+        f.type === 'beam' ? (
+          <BeamGlow key={f.id} position={f.pos} args={f.args} />
+        ) : (
+          <PostGlow key={f.id} position={f.pos} height={height} />
+        )
+      )}
     </group>
   );
 }
@@ -801,8 +1084,11 @@ const MemoizedPergolaSection = React.memo(PergolaSection, (prev, next) => {
     prev.cfg.showDimensions === next.cfg.showDimensions &&
     prev.cfg.walls === next.cfg.walls &&
     prev.cfg.screens === next.cfg.screens &&
-    JSON.stringify(prev.cfg.sections) === JSON.stringify(next.cfg.sections) &&
-    JSON.stringify(prev.cfg.extraPostPositions) === JSON.stringify(next.cfg.extraPostPositions) &&
+    prev.cfg.sections === next.cfg.sections &&
+    prev.cfg.extraPostPositions === next.cfg.extraPostPositions &&
+    prev.cfg.removedPostKeys === next.cfg.removedPostKeys &&
+    prev.cfg.heaters === next.cfg.heaters &&
+    prev.cfg.outlets === next.cfg.outlets &&
     prev.stepId === next.stepId
   );
 });

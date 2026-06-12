@@ -1,0 +1,7 @@
+{
+  "name": "pergola-builder",
+  "private": true,
+  "scripts": {
+    "vercel-build": "cd frontend && npm install --legacy-peer-deps && npm run build"
+  }
+}

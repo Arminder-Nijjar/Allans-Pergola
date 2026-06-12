@@ -1,10 +1,14 @@
 import React from 'react';
 import { StepHeader } from './_shared';
-import { STYLES, SIDES } from '../../data/catalog';
+import { STYLES, SIDES, GROUND_TYPES } from '../../data/catalog';
 import { isSideFullyInterior } from '../../utils/pergolaLayout';
-import { Check } from 'lucide-react';
+import { Check, Shovel } from 'lucide-react';
 
 export default function StyleStep({ cfg, setCfg, stepNum, total }) {
+  const handleGroundChange = (groundId) => {
+    setCfg((c) => ({ ...c, groundType: groundId }));
+  };
+
   const handleStyleChange = (styleId) => {
     if (styleId === '10x12-kit') {
       setCfg((c) => ({
@@ -21,7 +25,9 @@ export default function StyleStep({ cfg, setCfg, stepNum, total }) {
         wallColor: 'white',
         design: 'visible-screws',
         postSize: '4x4',
+        louverOperation: 'motorized',
         kitLouverOperation: 'motorized',
+        screenOperation: 'manual',
         kitLightSides: 'front-back',
         screens: [],
         walls: [],
@@ -112,6 +118,35 @@ export default function StyleStep({ cfg, setCfg, stepNum, total }) {
           </p>
         </div>
       )}
+
+      {/* Ground Type */}
+      <div className="mt-8 pb-card p-5 bg-[#f7f8f5] border-[#d8d8d4]">
+        <div className="flex items-center gap-2 mb-4">
+          <Shovel size={18} className="text-[#1a7a4b]" />
+          <p className="text-sm font-semibold text-[#14171a]">
+            What is the ground surface?
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {GROUND_TYPES.map((g) => {
+            const active = cfg.groundType === g.id;
+            return (
+              <button
+                key={g.id}
+                data-testid={`ground-${g.id}`}
+                onClick={() => handleGroundChange(g.id)}
+                className={`pb-tile text-left ${active ? 'pb-tile-active' : ''}`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <span className="pb-display text-sm font-semibold">{g.label}</span>
+                  {active && <Check size={16} className="text-[#1a7a4b] flex-shrink-0" />}
+                </div>
+                <p className="text-xs text-[#5b6368] leading-snug">{g.desc}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

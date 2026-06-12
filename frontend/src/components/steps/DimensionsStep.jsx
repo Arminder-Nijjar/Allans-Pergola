@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { StepHeader, NumberSlider } from './_shared';
 import { LIMITS } from '../../data/catalog';
 import { postPlan, louverSetCount, louverOperation, isAttachedSide } from '../../utils/pergolaRules';
-import { RotateCw, ArrowRightLeft } from 'lucide-react';
+import { RotateCw, ArrowRightLeft, Plus, Check } from 'lucide-react';
 import { PostSlider } from './PostSlider';
 
 export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
@@ -72,6 +72,18 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
         [positionKey]: value,
       },
     }));
+  };
+
+  const togglePostRemoval = (postKey) => {
+    setCfg((c) => {
+      const removed = new Set(c.removedPostKeys || []);
+      if (removed.has(postKey)) {
+        removed.delete(postKey);
+      } else {
+        removed.add(postKey);
+      }
+      return { ...c, removedPostKeys: Array.from(removed) };
+    });
   };
 
   const addOptionalExtraPost = (sectionId, side) => {
@@ -212,8 +224,46 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
               onPostPositionChange={updateExtraPostPosition}
               onAddOptionalPost={(side) => addOptionalExtraPost(section.id, side)}
               onRemoveOptionalPost={(side, index) => removeOptionalExtraPost(section.id, side, index)}
+              onTogglePostRemoval={togglePostRemoval}
+              setCfg={setCfg}
             />
           ))}
+        </div>
+      )}
+
+      {/* Louver Operation chooser — only for kit */}
+      {cfg.layout === '10x12-kit' && (
+        <div className="mt-4 pb-card p-4 md:p-6">
+          <p className="text-sm font-semibold text-[#14171a] mb-3">Louver Operation</p>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { id: 'manual', label: 'Manual', desc: 'Hand-crank control' },
+              { id: 'motorized', label: 'Motorized', desc: 'Remote control' },
+            ].map((o) => (
+              <button
+                type="button"
+                key={o.id}
+                onClick={() => setCfg((c) => ({ ...c, louverOperation: o.id }))}
+                className={`relative pb-card px-4 py-3 text-left min-w-[100px] transition-all flex-1 sm:flex-none ${
+                  (cfg.louverOperation || 'manual') === o.id
+                    ? 'bg-[#e6f3eb] border-[#1a7a4b] shadow-sm'
+                    : 'bg-white hover:border-[#1a7a4b]'
+                }`}
+              >
+                {(cfg.louverOperation || 'manual') === o.id && (
+                  <span className="absolute top-2 right-2">
+                    <Check size={14} className="text-[#1a7a4b]" />
+                  </span>
+                )}
+                <p className="text-sm font-semibold text-[#14171a]">
+                  {o.label}
+                </p>
+                <p className={`text-[11px] mt-0.5 ${(cfg.louverOperation || 'manual') === o.id ? 'text-[#1a7a4b]' : 'text-[#5b6368]'}`}>
+                  {o.desc}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -235,7 +285,7 @@ function clampBoth(v) {
   return Math.max(min, Math.min(max, v));
 }
 
-function SectionDimensions({ section, cfg, isActive, showAll, onUpdate, onRotate, onPostPositionChange, onAddOptionalPost, onRemoveOptionalPost }) {
+function SectionDimensions({ section, cfg, isActive, showAll, setCfg, onUpdate, onRotate, onPostPositionChange, onAddOptionalPost, onRemoveOptionalPost, onTogglePostRemoval }) {
   const plan = useMemo(() => postPlan(cfg, section.id), [cfg, section]);
   const sets = useMemo(() => louverSetCount(section), [section]);
   const op = useMemo(() => louverOperation(section, cfg), [section, cfg]);
@@ -319,10 +369,10 @@ function SectionDimensions({ section, cfg, isActive, showAll, onUpdate, onRotate
       </div>
 
       {/* Mandatory extra posts (sides ≥ 15 ft) */}
-      {mandatoryPosts.length > 0 && (
+      {(mandatoryPosts.length > 0 || plan.removedMandatoryPosts?.length > 0) && (
         <div className="mt-4 pb-card p-4 md:p-6">
           <p className="text-sm font-semibold text-[#14171a] mb-4">
-            {mandatoryPosts.length} Extra Support Post{mandatoryPosts.length > 1 ? 's' : ''} (sides ≥ 15 ft)
+            Extra Support Posts (sides ≥ 15 ft)
           </p>
           <div className="space-y-1">
             {mandatoryPosts.map((post) => (
@@ -333,9 +383,40 @@ function SectionDimensions({ section, cfg, isActive, showAll, onUpdate, onRotate
                 cfg={cfg}
                 positionKey={post.positionKey}
                 isMandatory={true}
+                onRemove={() => onTogglePostRemoval(post.positionKey)}
                 onPositionChange={(value) => onPostPositionChange(post.positionKey, value)}
               />
             ))}
+            {/* Removed but still recommended posts */}
+            {plan.removedMandatoryPosts?.map((post) => {
+              const sideLabel = { front: 'Front', back: 'Back', left: 'Left', right: 'Right' }[post.side];
+              return (
+                <div key={post.positionKey} className="py-3 rounded-lg border-b border-[#e5e5e0] last:border-0">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-[#14171a]">
+                          {sideLabel} Support Post
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#c98a2a] bg-[#fff8e6] px-1.5 py-0.5 rounded">
+                          Recommended
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#5b6368] mt-0.5">
+                        {post.position.toFixed(1)} ft — Side is {section[post.side === 'front' || post.side === 'back' ? 'length' : 'width']} ft (≥ 15 ft)
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => onTogglePostRemoval(post.positionKey)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors bg-[#e6f3eb] text-[#1a7a4b] border-[#cce4d7] hover:bg-[#d4eadc]"
+                    >
+                      <Plus size={13} />
+                      Re-add
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

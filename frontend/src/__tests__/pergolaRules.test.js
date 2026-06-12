@@ -48,33 +48,39 @@ describe('louverSetCount', () => {
 });
 
 describe('louverOperation', () => {
-  test('manual when within 12x16', () => {
-    const cfg = baseCfg();
-    expect(louverOperation({ length: 12, width: 16, height: 9 }, cfg)).toBe('manual');
-    expect(louverOperation({ length: 16, width: 12, height: 9 }, cfg)).toBe('manual');
+  test('uses cfg.louverOperation when set', () => {
+    expect(louverOperation({ length: 12, width: 16, height: 9 }, baseCfg({ louverOperation: 'motorized' }))).toBe('motorized');
+    expect(louverOperation({ length: 20, width: 20, height: 9 }, baseCfg({ louverOperation: 'manual' }))).toBe('manual');
   });
 
-  test('motorized when bigger than 12x16', () => {
-    const cfg = baseCfg();
-    expect(louverOperation({ length: 13, width: 13, height: 9 }, cfg)).toBe('motorized');
-    expect(louverOperation({ length: 12, width: 17, height: 9 }, cfg)).toBe('motorized');
+  test('falls back to size-based rules when cfg.louverOperation is not set', () => {
+    const cfgNoOp = baseCfg({ louverOperation: undefined });
+    expect(louverOperation({ length: 12, width: 16, height: 9 }, cfgNoOp)).toBe('manual');
+    expect(louverOperation({ length: 13, width: 13, height: 9 }, cfgNoOp)).toBe('motorized');
   });
 
-  test('kit follows kitLouverOperation', () => {
+  test('kit falls back to kitLouverOperation', () => {
     const section = { length: 12, width: 10, height: 9 };
-    expect(louverOperation(section, baseCfg({ layout: '10x12-kit', kitLouverOperation: 'manual' }))).toBe('manual');
-    expect(louverOperation(section, baseCfg({ layout: '10x12-kit', kitLouverOperation: 'phone-controlled' }))).toBe('phone-controlled');
-    expect(louverOperation(section, baseCfg({ layout: '10x12-kit', kitLouverOperation: undefined }))).toBe('motorized');
+    expect(louverOperation(section, baseCfg({ layout: '10x12-kit', louverOperation: undefined, kitLouverOperation: 'manual' }))).toBe('manual');
+    expect(louverOperation(section, baseCfg({ layout: '10x12-kit', louverOperation: undefined, kitLouverOperation: 'motorized' }))).toBe('motorized');
+    expect(louverOperation(section, baseCfg({ layout: '10x12-kit', louverOperation: undefined, kitLouverOperation: undefined }))).toBe('motorized');
   });
 });
 
 describe('screenOperation', () => {
-  test('manual up to 10x12', () => {
-    expect(screenOperation({ length: 10, width: 12, height: 9 })).toBe('manual');
+  test('kit is always manual', () => {
+    expect(screenOperation({ length: 10, width: 12, height: 9 }, baseCfg({ layout: '10x12-kit', screenOperation: 'motorized' }))).toBe('manual');
   });
-  test('motorized beyond 10x12', () => {
-    expect(screenOperation({ length: 12, width: 12, height: 9 })).toBe('motorized');
-    expect(screenOperation({ length: 10, width: 13, height: 9 })).toBe('motorized');
+
+  test('uses cfg.screenOperation when set', () => {
+    expect(screenOperation({ length: 10, width: 12, height: 9 }, baseCfg({ screenOperation: 'motorized' }))).toBe('motorized');
+    expect(screenOperation({ length: 20, width: 20, height: 9 }, baseCfg({ screenOperation: 'manual' }))).toBe('manual');
+  });
+
+  test('falls back to size-based rules when cfg.screenOperation is not set', () => {
+    const cfgNoOp = baseCfg({ screenOperation: undefined });
+    expect(screenOperation({ length: 10, width: 12, height: 9 }, cfgNoOp)).toBe('manual');
+    expect(screenOperation({ length: 12, width: 12, height: 9 }, cfgNoOp)).toBe('motorized');
   });
 });
 

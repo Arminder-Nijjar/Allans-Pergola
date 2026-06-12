@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StepHeader } from './_shared';
-import { Check } from 'lucide-react';
+import { Check, Plus, X, Zap, Flame } from 'lucide-react';
+import { SIDES, LIMITS } from '../../data/catalog';
+import { postPlan, isAttachedSide } from '../../utils/pergolaRules';
 
 export const HEATER_TYPES = [
   { id: 'wall-mounted', label: 'Wall-Mounted' },
@@ -126,6 +128,9 @@ export default function AddOnsStep({ cfg, setCfg, stepNum, total }) {
         desc="Power your outdoor kitchen, music, or lighting with GFCI-protected outlets built for safety. They’re weather-resistant and made to handle rain or shine — perfect for outdoor fun and hosting guests."
         note="Standard installation — no additional structural requirements."
       />
+      {addOns.outlets && (
+        <OutletPlacement cfg={cfg} setCfg={setCfg} />
+      )}
 
       {/* Heaters */}
       <div className="pb-card p-5 mb-4">
@@ -240,6 +245,11 @@ export default function AddOnsStep({ cfg, setCfg, stepNum, total }) {
                 </div>
               </div>
             )}
+
+            {/* Wall-mounted heater placement */}
+            {addOns.heaterType === 'wall-mounted' && addOns.heaterModel && (
+              <HeaterPlacement cfg={cfg} setCfg={setCfg} />
+            )}
           </div>
         )}
       </div>
@@ -270,6 +280,202 @@ function AddOnCard({ active, onToggle, title, desc, note }) {
           {active && <Check size={14} />}
           {active ? 'Selected' : 'Add'}
         </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Heater placement: choose which section/side gets wall-mounted heaters ── */
+function HeaterPlacement({ cfg, setCfg }) {
+  const toggleHeater = (sectionId, side, index) => {
+    setCfg((c) => {
+      const heaters = c.heaters || [];
+      const exists = heaters.some((h) => h.sectionId === sectionId && h.side === side && (h.index ?? 0) === index);
+      if (exists) {
+        return { ...c, heaters: heaters.filter((h) => !(h.sectionId === sectionId && h.side === side && (h.index ?? 0) === index)) };
+      }
+      return { ...c, heaters: [...heaters, { sectionId, side, index }] };
+    });
+  };
+
+  const sideLength = (section, sideId) => {
+    return (sideId === 'front' || sideId === 'back') ? section.length : section.width;
+  };
+
+  return (
+    <div className="mt-4 pb-card p-4 md:p-5">
+      <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3 flex items-center gap-1.5">
+        <Flame size={13} />
+        Heater Placement
+      </p>
+      <p className="text-xs text-[#5b6368] mb-3">
+        Choose which sides will have wall-mounted heaters.
+        Sides over 15 ft can have up to 2 heaters.
+      </p>
+
+      <div className="space-y-4">
+        {cfg.sections.map((section, idx) => (
+          <div key={section.id}>
+            {cfg.sections.length > 1 && (
+              <p className="text-xs font-semibold text-[#14171a] mb-2">Section {idx + 1}</p>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              {SIDES.map((s) => {
+                const isAttached = isAttachedSide(cfg, section.id, s.id);
+                const len = sideLength(section, s.id);
+                const maxCount = len > 15 ? 2 : 1;
+                const existing = (cfg.heaters || []).filter((h) => h.sectionId === section.id && h.side === s.id);
+
+                if (isAttached) {
+                  return (
+                    <button
+                      key={s.id}
+                      disabled
+                      className="px-3 py-2 rounded-lg text-xs font-semibold border bg-[#f3f3ef] text-[#a8a8a4] border-[#d8d8d4] cursor-not-allowed flex items-center justify-center gap-1.5"
+                    >
+                      {s.label} <span className="text-[10px] opacity-70">(house)</span>
+                    </button>
+                  );
+                }
+
+                return (
+                  <div key={s.id} className="flex flex-col gap-1">
+                    <span className="text-[10px] text-[#5b6368] text-center">{s.label}</span>
+                    <div className="flex gap-1">
+                      {[0, 1].map((i) => {
+                        if (i >= maxCount) return null;
+                        const has = existing.some((h) => (h.index ?? 0) === i);
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => toggleHeater(section.id, s.id, i)}
+                            className={`flex-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors flex items-center justify-center gap-1 ${
+                              has
+                                ? 'bg-[#1a7a4b] text-white border-transparent'
+                                : 'bg-white text-[#14171a] border-[#d8d8d4] hover:border-[#14171a]'
+                            }`}
+                            title={`${s.label} heater ${i + 1}${len > 15 ? '' : ' (max 1)'}`}
+                          >
+                            {has && <Check size={12} />}
+                            {i + 1}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {(cfg.heaters || []).length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {cfg.heaters.map((h, i) => {
+            const secIdx = cfg.sections.findIndex((s) => s.id === h.sectionId) + 1;
+            const sideLabel = SIDES.find((s) => s.id === h.side)?.label || h.side;
+            const index = h.index ?? 0;
+            const section = cfg.sections.find((s) => s.id === h.sectionId);
+            const len = section ? sideLength(section, h.side) : 0;
+            const showNum = len > 15;
+            return (
+              <span key={i} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-[#e6f3eb] text-[#1a7a4b]">
+                {cfg.sections.length > 1 ? `S${secIdx}` : ''} {sideLabel}{showNum ? ` #${index + 1}` : ''}
+                <button
+                  onClick={() => toggleHeater(h.sectionId, h.side, index)}
+                  className="hover:text-red-600"
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Outlet placement: choose which posts get outlets ── */
+function OutletPlacement({ cfg, setCfg }) {
+  const toggleOutlet = (sectionId, postKey, postLabel) => {
+    setCfg((c) => {
+      const outlets = c.outlets || [];
+      const exists = outlets.some((o) => o.sectionId === sectionId && o.postKey === postKey);
+      if (exists) {
+        return { ...c, outlets: outlets.filter((o) => !(o.sectionId === sectionId && o.postKey === postKey)) };
+      }
+      return { ...c, outlets: [...outlets, { sectionId, postKey, label: postLabel }] };
+    });
+  };
+
+  return (
+    <div className="pb-card p-4 md:p-5 mb-4">
+      <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3 flex items-center gap-1.5">
+        <Zap size={13} />
+        Outlet Placement
+      </p>
+      <p className="text-xs text-[#5b6368] mb-3">Select posts where GFCI outlets will be installed (~2 ft above ground).</p>
+
+      <div className="space-y-4">
+        {cfg.sections.map((section, idx) => {
+          const plan = postPlan(cfg, section.id);
+          const posts = [];
+
+          // Corner posts
+          const cornerLabels = { bl: 'Back-Left', br: 'Back-Right', fr: 'Front-Right', fl: 'Front-Left' };
+          plan.cornerList?.forEach((c) => {
+            posts.push({
+              key: c.key,
+              label: `Corner — ${cornerLabels[c.id]}`,
+            });
+          });
+
+          // Extra posts
+          plan.extraPosts.forEach((p) => {
+            const sideLabel = { front: 'Front', back: 'Back', left: 'Left', right: 'Right' }[p.side];
+            posts.push({
+              key: p.positionKey,
+              label: `${p.isMandatory ? 'Support' : 'Accessory'} — ${sideLabel} (${p.position.toFixed(1)} ft)`,
+            });
+          });
+
+          if (posts.length === 0) return null;
+
+          return (
+            <div key={section.id}>
+              {cfg.sections.length > 1 && (
+                <p className="text-xs font-semibold text-[#14171a] mb-2">Section {idx + 1}</p>
+              )}
+              <div className="space-y-1.5">
+                {posts.map((post) => {
+                  const hasOutlet = (cfg.outlets || []).some((o) => o.sectionId === section.id && o.postKey === post.key);
+                  return (
+                    <button
+                      key={post.key}
+                      onClick={() => toggleOutlet(section.id, post.key, post.label)}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                        hasOutlet
+                          ? 'bg-[#fff8e6] text-[#c98a2a] border-[#f0e0b0]'
+                          : 'bg-white text-[#14171a] border-[#d8d8d4] hover:border-[#1a7a4b]'
+                      }`}
+                    >
+                      <span>{post.label}</span>
+                      {hasOutlet ? (
+                        <span className="flex items-center gap-1 text-[11px] font-semibold">
+                          <Zap size={13} /> Outlet
+                        </span>
+                      ) : (
+                        <Plus size={13} className="text-[#5b6368]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

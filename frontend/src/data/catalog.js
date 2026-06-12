@@ -109,10 +109,16 @@ export const DEFAULT_CONFIG = {
   editMode: 'none',
   extraPostPositions: {},
   optionalExtraPosts: {}, // sectionId -> { side: count } for accessory posts
+  removedPostKeys: [], // array of post keys user has removed from view
   design: 'hidden-screws',
   postSize: '6x6',
+  louverOperation: 'manual',
   kitLouverOperation: 'motorized',
+  screenOperation: 'manual',
   kitLightSides: 'front-back',
   addOns: {},
   groundType: 'gravel',
+  heaters: [], // { sectionId, side }[] for wall-mounted heater placement
+  outlets: [], // { sectionId, postKey }[] for outlet placement on posts
+  notes: '', // user notes for design team
 };

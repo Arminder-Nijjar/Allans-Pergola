@@ -28,7 +28,7 @@ describe('catalog', () => {
   });
 
   test('kit louver defaults are valid', () => {
-    expect(['manual', 'motorized', 'phone-controlled']).toContain(DEFAULT_CONFIG.kitLouverOperation);
+    expect(['manual', 'motorized']).toContain(DEFAULT_CONFIG.louverOperation);
     expect(['front-back', 'left-right', 'all', 'none']).toContain(DEFAULT_CONFIG.kitLightSides);
   });
 

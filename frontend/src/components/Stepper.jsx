@@ -1,12 +1,95 @@
 import React from 'react';
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Home, ArrowRightLeft } from 'lucide-react';
 
-export default function Stepper({ steps, current, onJump }) {
+export default function Stepper({ steps, current, onJump, compareState, onSwitchConfig, onStartCompare }) {
   const canGoPrev = current > 0;
   const canGoNext = current < steps.length - 1;
 
+  const isCompareMode = compareState?.isComparing && compareState?.firstConfig;
+  const activeConfigTab = compareState?.activeConfigTab || 'A';
+
   return (
-    <div className="flex items-center gap-3" data-testid="stepper" role="tablist" aria-label="Pergola builder steps">
+    <div className="flex flex-col gap-2" data-testid="stepper" role="tablist" aria-label="Pergola builder steps">
+      {/* Config Tabs Row - shown in compare mode */}
+      {isCompareMode ? (
+        <div className="flex flex-col gap-2 pb-3 border-b border-[#ececea]">
+          {/* Editing indicator */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[#5b6368]">Currently editing:</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${activeConfigTab === 'A' ? 'bg-[#1a7a4b] text-white' : activeConfigTab === 'B' ? 'bg-[#bbf7d0] text-[#14532d]' : 'bg-[#f5f5f3] text-[#5b6368]'}`}>
+              Pergola {activeConfigTab}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Pergola A Tab */}
+            <button
+              onClick={() => onSwitchConfig && onSwitchConfig('A')}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                activeConfigTab === 'A'
+                  ? 'bg-[#1a7a4b] text-white shadow-md ring-2 ring-[#1a7a4b]/30'
+                  : 'bg-[#f5f5f3] text-[#5b6368] hover:bg-[#e8e8e6]'
+              }`}
+            >
+              <Home size={16} />
+              <span className="font-semibold">A</span>
+              {compareState?.firstConfig && (
+                <span className="opacity-80 font-medium">
+                  {compareState.firstConfig.sections.map(s => `${s.length}×${s.width}`).join(' + ')}
+                </span>
+              )}
+              {compareState?.firstConfig && (
+                <Check size={14} className="text-[#4ade80]" />
+              )}
+            </button>
+
+            {/* Pergola B Tab */}
+            <button
+              onClick={() => onSwitchConfig && onSwitchConfig('B')}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                activeConfigTab === 'B'
+                  ? 'bg-[#bbf7d0] text-[#14532d] shadow-md ring-2 ring-[#86efac]'
+                  : 'bg-[#f5f5f3] text-[#5b6368] hover:bg-[#e8e8e6]'
+              }`}
+            >
+              <Home size={16} />
+              <span className="font-semibold">B</span>
+              {compareState?.secondConfig && (
+                <span className="opacity-80 font-medium">
+                  {compareState.secondConfig.sections.map(s => `${s.length}×${s.width}`).join(' + ')}
+                </span>
+              )}
+              {compareState?.secondConfig && (
+                <Check size={14} className="text-[#4ade80]" />
+              )}
+            </button>
+
+            {/* Compare button */}
+            <button
+              onClick={() => onSwitchConfig && onSwitchConfig('compare')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm transition-all bg-[#14171a] text-white hover:bg-[#2d3339] shadow-md"
+            >
+              <ArrowRightLeft size={16} />
+              <span className="font-semibold hidden sm:inline">Compare</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Normal mode - show Compare button to start comparison */
+        <div className="flex items-center justify-between pb-2 border-b border-[#ececea]">
+          <span className="text-sm text-[#5b6368]">Build your pergola, then compare designs</span>
+          <button
+            onClick={() => onStartCompare && onStartCompare()}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all bg-[#1a7a4b] text-white hover:bg-[#145c3a] shadow-md"
+          >
+            <ArrowRightLeft size={16} />
+            <span className="font-semibold">Compare</span>
+          </button>
+        </div>
+      )}
+
+      {/* Steps Row - always visible, horizontally scrollable */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 stepper-scroll">
       {/* Previous button */}
       <button
         onClick={() => canGoPrev && onJump && onJump(current - 1)}
@@ -23,7 +106,7 @@ export default function Stepper({ steps, current, onJump }) {
       </button>
 
       {/* Steps */}
-      <div className="flex items-center gap-1 flex-1 justify-between overflow-hidden">
+      <div className="flex items-center gap-1 flex-1 stepper-scroll">
         {steps.map((s, i) => {
           const done = i < current;
           const active = i === current;
@@ -104,6 +187,7 @@ export default function Stepper({ steps, current, onJump }) {
       >
         <ChevronRight size={18} />
       </button>
+      </div>
     </div>
   );
 }

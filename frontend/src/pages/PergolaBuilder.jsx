@@ -17,11 +17,34 @@ import ThankYouStep from '../components/steps/ThankYouStep';
 import { getSteps } from '../utils/steps';
 
 export default function PergolaBuilder() {
-  const [cfg, setCfg] = useState(DEFAULT_CONFIG);
+  const [cfg, setCfg] = useState(() => {
+    // Try to restore config from URL ?config= param
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get('config');
+      if (encoded) {
+        const json = atob(decodeURIComponent(encoded));
+        const parsed = JSON.parse(json);
+        return { ...DEFAULT_CONFIG, ...parsed };
+      }
+    } catch {
+      // ignore invalid share URLs
+    }
+    return DEFAULT_CONFIG;
+  });
   const [stepIdx, setStepIdx] = useState(0);
   const [maxVisitedStep, setMaxVisitedStep] = useState(0);
   const [submitted, setSubmitted] = useState(null);
   const [viewerOpenMobile, setViewerOpenMobile] = useState(true);
+  
+  // Compare mode state
+  const [compareState, setCompareState] = useState({
+    isComparing: false,
+    firstConfig: null,
+    secondConfig: null,
+    showCompareView: false,
+    activeConfigTab: 'A', // 'A' | 'B' | 'compare'
+  });
 
   const isKit = cfg.layout === '10x12-kit';
   const STEPS = useMemo(() => getSteps(cfg), [isKit]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -34,6 +57,9 @@ export default function PergolaBuilder() {
 
   const step = submitted ? null : STEPS[Math.min(stepIdx, STEPS.length - 1)];
   const allowEdit = step && (step.id === 'screens' || step.id === 'walls' || step.id === 'dimensions');
+  
+  // When showing comparison on Review step, hide left viewer and expand step panel
+  const isCompareView = step?.id === 'review' && compareState?.showCompareView && compareState?.firstConfig && compareState?.secondConfig;
 
   const next = () => {
     setStepIdx((i) => {
@@ -49,6 +75,99 @@ export default function PergolaBuilder() {
     setStepIdx(0);
     setMaxVisitedStep(0);
     setSubmitted(null);
+    setCompareState({ isComparing: false, firstConfig: null, secondConfig: null, showCompareView: false, activeConfigTab: 'A' });
+  };
+
+  const startCompare = () => {
+    // Deep clone current config so edits to B don't mutate A
+    const savedA = JSON.parse(JSON.stringify(cfg));
+    setCompareState({
+      isComparing: true,
+      firstConfig: savedA,
+      secondConfig: null,
+      showCompareView: false,
+      activeConfigTab: 'B',
+    });
+    setCfg(JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
+    setStepIdx(0);
+    setMaxVisitedStep(0);
+  };
+
+  const finishSecondConfig = (opts = {}) => {
+    if (opts?.toggleOff) {
+      // Hide comparison view and return to normal review
+      setCompareState((prev) => ({
+        ...prev,
+        showCompareView: false,
+      }));
+      return;
+    }
+    // Second config is complete, save current cfg as B and show comparison inline
+    setCompareState((prev) => ({
+      ...prev,
+      secondConfig: cfg,
+      showCompareView: true,
+    }));
+    // Stay on Review step - CompareConfigsView will be shown inline
+  };
+
+  const goBackToFirstConfig = () => {
+    // Return to first config to edit it
+    if (compareState.firstConfig) {
+      setCfg(compareState.firstConfig);
+      setCompareState((prev) => ({
+        ...prev,
+        activeConfigTab: 'A',
+        showCompareView: false,
+      }));
+    }
+  };
+
+  const resumeSecondConfig = () => {
+    // Return to building second config
+    if (compareState.secondConfig) {
+      setCfg(compareState.secondConfig);
+      setCompareState((prev) => ({
+        ...prev,
+        activeConfigTab: 'B',
+        showCompareView: false,
+      }));
+    }
+  };
+
+  const switchConfig = (tab) => {
+    // Save current config before switching (so latest edits are preserved)
+    const currentConfig = cfg;
+    
+    if (tab === 'A' && compareState.firstConfig) {
+      // Save B if we were editing B
+      if (compareState.activeConfigTab === 'B') {
+        setCompareState((prev) => ({ ...prev, secondConfig: currentConfig }));
+      }
+      setCfg(compareState.firstConfig);
+      setCompareState((prev) => ({ ...prev, activeConfigTab: 'A', showCompareView: false }));
+    } else if (tab === 'B' && compareState.secondConfig) {
+      // Save A if we were editing A
+      if (compareState.activeConfigTab === 'A') {
+        setCompareState((prev) => ({ ...prev, firstConfig: currentConfig }));
+      }
+      setCfg(compareState.secondConfig);
+      setCompareState((prev) => ({ ...prev, activeConfigTab: 'B', showCompareView: false }));
+    } else if (tab === 'compare') {
+      // Save whichever config was being edited before showing comparison
+      if (compareState.activeConfigTab === 'A') {
+        setCompareState((prev) => ({ ...prev, firstConfig: currentConfig, activeConfigTab: 'compare', showCompareView: true }));
+      } else if (compareState.activeConfigTab === 'B') {
+        setCompareState((prev) => ({ ...prev, secondConfig: currentConfig, activeConfigTab: 'compare', showCompareView: true }));
+      } else {
+        setCompareState((prev) => ({ ...prev, activeConfigTab: 'compare', showCompareView: true }));
+      }
+      const reviewIdx = STEPS.findIndex((s) => s.id === 'review');
+      if (reviewIdx >= 0) {
+        setStepIdx(reviewIdx);
+        setMaxVisitedStep((m) => Math.max(m, reviewIdx));
+      }
+    }
   };
 
   // Scroll the step content to top on step change (mobile)
@@ -74,14 +193,14 @@ export default function PergolaBuilder() {
       {!submitted && (
         <div className="border-b border-[#ececea] bg-white sticky top-[58px] z-10">
           <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-3">
-            <Stepper steps={STEPS} current={stepIdx} onJump={setStepIdx} />
+            <Stepper steps={STEPS} current={stepIdx} onJump={setStepIdx} compareState={compareState} onSwitchConfig={switchConfig} onStartCompare={startCompare} />
           </div>
         </div>
       )}
 
-      <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 lg:px-8 py-4 lg:py-6 grid grid-cols-1 lg:grid-cols-[1fr_440px] xl:grid-cols-[1fr_500px] gap-4 lg:gap-6">
-        {/* Viewer */}
-        <section className={`min-h-[42vh] lg:min-h-[600px] ${submitted ? 'lg:col-span-2' : ''}`}>
+      <main className={`flex-1 max-w-[1600px] mx-auto w-full px-4 lg:px-8 py-4 lg:py-6 grid grid-cols-1 ${isCompareView ? 'lg:grid-cols-1' : 'lg:grid-cols-[1fr_440px] xl:grid-cols-[1fr_500px]'} gap-4 lg:gap-6`}>
+        {/* Viewer - hidden when in compare view */}
+        <section className={`min-h-[42vh] lg:min-h-[600px] ${submitted ? 'lg:col-span-2' : ''} ${isCompareView ? 'hidden lg:hidden' : ''}`}>
           <div className="lg:hidden mb-3 flex items-center justify-between">
             <button
               data-testid="toggle-viewer-mobile"
@@ -110,11 +229,11 @@ export default function PergolaBuilder() {
           )}
         </section>
 
-        {/* Step panel */}
+        {/* Step panel - full width when in compare view */}
         {!submitted ? (
-          <section className="pb-card p-5 lg:p-7 flex flex-col lg:h-[calc(100vh-180px)] min-h-0">
+          <section className={`pb-card p-5 lg:p-7 flex flex-col lg:h-[calc(100vh-180px)] min-h-0 ${isCompareView ? 'lg:col-span-full' : ''}`}>
             <div id="pb-step-content" className="flex-1 overflow-y-auto pb-scroll pr-1">
-              <StepBody stepId={step.id} cfg={cfg} setCfg={setCfg} stepNum={stepIdx + 1} total={STEPS.length} onSubmitted={setSubmitted} />
+              <StepBody stepId={step.id} cfg={cfg} setCfg={setCfg} stepNum={stepIdx + 1} total={STEPS.length} onSubmitted={setSubmitted} onJump={setStepIdx} compareState={compareState} startCompare={startCompare} finishSecondConfig={finishSecondConfig} restartCompare={restart} goBackToFirstConfig={goBackToFirstConfig} resumeSecondConfig={resumeSecondConfig} />
             </div>
             <div className="pb-mobile-nav">
               <NavBar
@@ -156,7 +275,7 @@ function Header() {
   );
 }
 
-function StepBody({ stepId, cfg, setCfg, stepNum, total, onSubmitted }) {
+function StepBody({ stepId, cfg, setCfg, stepNum, total, onSubmitted, onJump, compareState, startCompare, finishSecondConfig, restartCompare, goBackToFirstConfig, resumeSecondConfig }) {
   switch (stepId) {
     case 'layout': return <LayoutStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'style': return <StyleStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
@@ -166,8 +285,8 @@ function StepBody({ stepId, cfg, setCfg, stepNum, total, onSubmitted }) {
     case 'screens': return <ScreensStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'walls': return <WallsStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'add-ons': return <AddOnsStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
-    case 'review': return <ReviewStep cfg={cfg} stepNum={stepNum} total={total} />;
-    case 'quote': return <QuoteStep cfg={cfg} stepNum={stepNum} total={total} onSubmitted={onSubmitted} />;
+    case 'review': return <ReviewStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} onJump={onJump} compareState={compareState} onStartCompare={startCompare} onFinishSecond={finishSecondConfig} onRestartCompare={restartCompare} onBackToFirst={goBackToFirstConfig} onResumeSecond={resumeSecondConfig} />;
+    case 'quote': return <QuoteStep cfg={cfg} stepNum={stepNum} total={total} onSubmitted={onSubmitted} compareState={compareState} />;
     default: return null;
   }
 }

@@ -13,8 +13,8 @@ export const ALL_STEPS = [
   { id: 'quote', label: 'Submit' },
 ];
 
-// 10x12 kit skips: layout (fixed), frame (fixed colours), lights (fixed placement)
-const KIT_SKIPPED_STEPS = ['layout', 'frame', 'lights'];
+// 10x12 kit skips: layout (fixed), frame (fixed colours)
+const KIT_SKIPPED_STEPS = ['layout', 'frame'];
 
 export function getSteps(cfg) {
   if (cfg?.layout === '10x12-kit') {

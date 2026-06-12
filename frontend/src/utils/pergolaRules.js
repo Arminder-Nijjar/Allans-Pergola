@@ -36,19 +36,25 @@ export function louverSetCount(section) {
   return Math.ceil(larger / LIMITS.louver.maxSpan);
 }
 
-// Louver operation rule:
-//   Manual if ≤ 12×16 (or 16×12), motorized if > 12×12.
-//   10×12 kit: follows kitLouverOperation config (manual / motorized / phone-controlled).
+// Louver operation:
+//   Uses cfg.louverOperation when set; falls back to size-based rules.
+//   10×12 kit also supports 'phone-controlled' via the same field.
 export function louverOperation(section, cfg) {
-  if (cfg?.layout === '10x12-kit') return cfg.kitLouverOperation || 'motorized';
+  if (cfg?.louverOperation) return cfg.louverOperation;
+  // Fallback to size-based auto-detection
+  if (cfg?.layout === '10x12-kit') return cfg?.kitLouverOperation || 'motorized';
   const L = Math.min(section.length, section.width);
   const W = Math.max(section.length, section.width);
   if (L <= 12 && W <= 16) return 'manual';
   return 'motorized';
 }
 
-// Screen operation: motorized if bigger than 10×12, else manual.
-export function screenOperation(section) {
+// Screen operation:
+//   Kit is always manual. For others, uses cfg.screenOperation if set.
+export function screenOperation(section, cfg) {
+  if (cfg?.layout === '10x12-kit') return 'manual';
+  if (cfg?.screenOperation) return cfg.screenOperation;
+  // Fallback to size-based auto-detection
   const L = Math.min(section.length, section.width);
   const W = Math.max(section.length, section.width);
   if (L <= 10 && W <= 12) return 'manual';
@@ -60,8 +66,10 @@ export function screenOperation(section) {
 // but extra support posts still apply to other long sides.
 // Accessory posts: users can add multiple accessory posts to any side.
 // Position keys: `${sectionId}-${side}-${index}` (index 0, 1, 2...)
+// Corner post keys: `${sectionId}-corner-${cornerId}` (bl, br, fr, fl)
 export function postPlan(cfg, sectionId) {
   const section = getSection(cfg, sectionId);
+  const removedSet = new Set(cfg.removedPostKeys || []);
 
   const sides = ['front', 'back', 'left', 'right'].map((s) => {
     const isHoriz = s === 'front' || s === 'back';
@@ -76,6 +84,24 @@ export function postPlan(cfg, sectionId) {
     const freeSideLen = sides.find((s) => s.id === oppositeSide(cfg.attachedSide))?.length || 0;
     if (freeSideLen >= LIMITS.extraSupportThreshold) cornerPosts = 4;
   }
+
+  // Build corner post list with keys so they can be individually removed
+  const cornerList = [];
+  const allCorners = [
+    { id: 'bl', sides: ['back', 'left'] },
+    { id: 'br', sides: ['back', 'right'] },
+    { id: 'fr', sides: ['front', 'right'] },
+    { id: 'fl', sides: ['front', 'left'] },
+  ];
+  for (const c of allCorners) {
+    const key = `${sectionId}-corner-${c.id}`;
+    // Skip if already removed by layout (attached side)
+    if (isAttached && c.sides.includes(cfg.attachedSide) && sectionId === 'section-2') continue;
+    if (!removedSet.has(key)) {
+      cornerList.push({ id: c.id, key, sides: c.sides });
+    }
+  }
+  cornerPosts = cornerList.length;
 
   // optionalExtraPosts shape: { sectionId: { side: count } }
   const optionalExtraPosts = cfg.optionalExtraPosts || {};
@@ -97,12 +123,13 @@ export function postPlan(cfg, sectionId) {
     if (totalCount > 0) {
       extraSides.push(s.id);
       extraSideCounts[s.id] = totalCount;
-      extras += totalCount;
       if (isMandatory) mandatoryExtraSides.push(s.id);
 
       for (let i = 0; i < totalCount; i++) {
         const isThisMandatory = isMandatory && i === 0;
         const positionKey = `${sectionId}-${s.id}-${i}`;
+        if (removedSet.has(positionKey)) continue;
+        extras += 1;
         // Evenly spaced defaults: e.g. 2 posts on 16ft => 16/3 and 32/3
         const defaultPos = s.length * (i + 1) / (totalCount + 1);
         const position = cfg.extraPostPositions?.[positionKey] ?? defaultPos;
@@ -111,13 +138,29 @@ export function postPlan(cfg, sectionId) {
     }
   }
 
+  // Track removed mandatory posts that are still recommended (side still >= threshold)
+  const removedMandatoryPosts = [];
+  for (const s of sides) {
+    if (s.isAttached) continue;
+    const isMandatory = s.length >= LIMITS.extraSupportThreshold;
+    if (!isMandatory) continue;
+    const positionKey = `${sectionId}-${s.id}-0`;
+    if (removedSet.has(positionKey)) {
+      const defaultPos = s.length / 2;
+      const position = cfg.extraPostPositions?.[positionKey] ?? defaultPos;
+      removedMandatoryPosts.push({ side: s.id, index: 0, isMandatory: true, positionKey, position });
+    }
+  }
+
   return {
     cornerPosts,
+    cornerList,
     extras,
     extraSides,
     extraSideCounts,
     mandatoryExtraSides,
     extraPosts,
+    removedMandatoryPosts,
     total: cornerPosts + extras,
   };
 }

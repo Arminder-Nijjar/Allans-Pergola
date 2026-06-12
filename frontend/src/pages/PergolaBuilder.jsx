@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, ChevronDown, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 import { DEFAULT_CONFIG } from '../data/catalog';
 import PergolaViewer from '../components/PergolaViewer';
 import Stepper from '../components/Stepper';
@@ -45,6 +46,16 @@ export default function PergolaBuilder() {
     showCompareView: false,
     activeConfigTab: 'A', // 'A' | 'B' | 'compare'
   });
+
+  // Notify when a shared design is loaded from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('config')) {
+      toast.success('Shared design loaded', {
+        description: 'You are viewing a shared pergola design. Navigate through the steps to see all details.',
+      });
+    }
+  }, []);
 
   const isKit = cfg.layout === '10x12-kit';
   const STEPS = useMemo(() => getSteps(cfg), [isKit]); // eslint-disable-line react-hooks/exhaustive-deps

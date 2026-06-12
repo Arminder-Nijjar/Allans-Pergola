@@ -4,7 +4,16 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { Loader2, Home, AlertCircle, X, FileText } from 'lucide-react';
 
-const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
+const API = (() => {
+  const envUrl = process.env.REACT_APP_BACKEND_URL;
+  if (envUrl) return `${envUrl}/api`;
+  // Local dev: proxy to backend server
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:8000/api';
+  }
+  // Production: same-origin relative path
+  return '/api';
+})();
 
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

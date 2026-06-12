@@ -8,7 +8,6 @@ import LayoutStep from '../components/steps/LayoutStep';
 import StyleStep from '../components/steps/StyleStep';
 import DimensionsStep from '../components/steps/DimensionsStep';
 import FrameStep from '../components/steps/FrameStep';
-import LouversStep from '../components/steps/LouversStep';
 import LightsStep from '../components/steps/LightsStep';
 import ScreensStep from '../components/steps/ScreensStep';
 import WallsStep from '../components/steps/WallsStep';
@@ -301,7 +300,6 @@ function StepBody({ stepId, cfg, setCfg, stepNum, total, onSubmitted, onJump, co
     case 'style': return <StyleStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'dimensions': return <DimensionsStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'frame': return <FrameStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
-    case 'louvers': return <LouversStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'lights': return <LightsStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'screens': return <ScreensStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'walls': return <WallsStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;

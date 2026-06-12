@@ -5,7 +5,6 @@ export const ALL_STEPS = [
   { id: 'layout', label: 'Layout' },
   { id: 'dimensions', label: 'Size' },
   { id: 'frame', label: 'Colour' },
-  { id: 'louvers', label: 'Louvers' },
   { id: 'walls', label: 'Walls' },
   { id: 'screens', label: 'Screens' },
   { id: 'lights', label: 'Lights' },

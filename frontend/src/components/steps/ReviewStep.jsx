@@ -241,12 +241,11 @@ export default function ReviewStep({ cfg, setCfg, stepNum, total, onJump, compar
     setCfg((prev) => ({ ...prev, notes: e.target.value }));
   };
 
-  // Use first section for aggregate stats
-  const section = cfg.sections[0];
+  // Calculate stats across all sections
   const plan = totalPostPlan(cfg);
-  const sets = louverSetCount(section);
-  const lop = louverOperation(section, cfg);
-  const sop = screenOperation(section, cfg);
+  const totalSets = cfg.sections.reduce((sum, s) => sum + louverSetCount(s), 0);
+  const lop = louverOperation(cfg.sections[0], cfg);
+  const sop = screenOperation(cfg.sections[0], cfg);
 
   const rows = [];
   
@@ -284,9 +283,12 @@ export default function ReviewStep({ cfg, setCfg, stepNum, total, onJump, compar
   // Louvers
   const controlTypeLabel = cfg.louverControlType === 'app' ? 'App' : 'Remote';
   const opLabel = lop === 'manual' ? 'Manual' : `${controlTypeLabel} Control`;
+  const setsLabel = cfg.sections.length > 1 
+    ? `${totalSets} total (${cfg.sections.map((s, i) => `S${i+1}: ${louverSetCount(s)}`).join(', ')})`
+    : `${totalSets} set${totalSets > 1 ? 's' : ''}`;
   const louverValue = cfg.layout === '10x12-kit'
     ? `${opLabel} · Preference: we will confirm availability for chosen size`
-    : `${sets} set${sets > 1 ? 's' : ''} · ${colorName(LOUVER_COLORS, cfg.louverColor)} · ${opLabel}`;
+    : `${setsLabel} · ${colorName(LOUVER_COLORS, cfg.louverColor)} · ${opLabel}`;
   rows.push({ label: 'Louvers', value: louverValue, stepId: cfg.layout === '10x12-kit' ? 'dimensions' : 'frame' });
 
   // Lighting

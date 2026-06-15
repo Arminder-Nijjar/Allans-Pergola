@@ -266,6 +266,40 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
         <p className="text-xs text-[#5b6368] mt-3 bg-[#f8f9fa] border border-[#ececea] rounded-lg p-3">
           This is a customer preference. We will confirm if motorized louvers are available for the chosen size.
         </p>
+
+        {/* Control Type — only shown when motorized is selected */}
+        {cfg.louverOperation === 'motorized' && (
+          <div className="mt-4 pt-4 border-t border-[#ececea]">
+            <p className="text-sm font-semibold text-[#14171a] mb-3">Control Type</p>
+            <div className="flex flex-wrap gap-3">
+              {[
+                { id: 'remote', label: 'Remote Control', desc: 'Standard remote — $2,200 per section' },
+                { id: 'app', label: 'App Control', desc: 'Smartphone app +$700 — $2,900 per section' },
+              ].map((o) => (
+                <button
+                  type="button"
+                  key={o.id}
+                  onClick={() => setCfg((c) => ({ ...c, louverControlType: o.id }))}
+                  className={`relative pb-card px-4 py-3 text-left min-w-[140px] transition-all flex-1 sm:flex-none ${
+                    (cfg.louverControlType || 'remote') === o.id
+                      ? 'bg-[#e6f3eb] border-[#1a7a4b] shadow-sm'
+                      : 'bg-white hover:border-[#1a7a4b]'
+                  }`}
+                >
+                  {(cfg.louverControlType || 'remote') === o.id && (
+                    <span className="absolute top-2 right-2">
+                      <Check size={14} className="text-[#1a7a4b]" />
+                    </span>
+                  )}
+                  <p className="text-sm font-semibold text-[#14171a]">{o.label}</p>
+                  <p className={`text-[11px] mt-0.5 ${(cfg.louverControlType || 'remote') === o.id ? 'text-[#1a7a4b]' : 'text-[#5b6368]'}`}>
+                    {o.desc}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
     </div>
@@ -469,7 +503,11 @@ function SectionDimensions({ section, cfg, isActive, showAll, setCfg, onUpdate, 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3" data-testid={`auto-info-${section.id}`}>
         <Info label="Total Posts" value={plan.total} suffix={`(4 corners + ${plan.extras} mid)`} />
         <Info label="Louver Sets" value={sets} suffix={sets > 1 ? 'auto-split' : 'single span'} />
-        <Info label="Operation" value={op === 'manual' ? 'Hand-crank' : 'Remote control'} suffix={op === 'motorized' ? 'Electric motor' : 'Manual crank'} />
+        <Info 
+          label="Operation" 
+          value={op === 'manual' ? 'Hand-crank' : (cfg.louverControlType === 'app' ? 'App Control' : 'Remote Control')} 
+          suffix={op === 'motorized' ? (cfg.louverControlType === 'app' ? 'Smartphone app (+$700)' : 'Standard remote') : 'Manual crank'} 
+        />
       </div>
     </div>
   );

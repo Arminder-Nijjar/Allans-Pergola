@@ -113,11 +113,16 @@ def build_config_summary(config: Dict[str, Any]) -> str:
     post_color = config.get("postColor", "umbra-grey").replace("-", " ").title()
     louver_color = config.get("louverColor", "pure-white").replace("-", " ").title()
     louver_op = config.get("louverOperation", "manual")
-    louver_op_label = louver_op.replace("-", " ").title()
-
+    louver_control = config.get("louverControlType", "remote")
+    
+    if louver_op == "motorized":
+        control_label = "App Control" if louver_control == "app" else "Remote Control"
+    else:
+        control_label = louver_op.replace("-", " ").title()
+    
     features = []
     if layout == "10x12-kit":
-        features.append(f"Louver Operation: {louver_op_label} (preference — availability confirmed by size)")
+        features.append(f"Louver Operation: {control_label} (preference — availability confirmed by size)")
 
     light_color = config.get("lightColor", "none")
     if light_color and light_color != "none":
@@ -260,13 +265,14 @@ def build_pricing_summary(config: Dict[str, Any]) -> str:
 
         # Louver operation (per section)
         louver_op = config.get("louverOperation", "manual")
+        louver_control = config.get("louverControlType", "remote")
         if louver_op == "motorized":
-            op_cost = 2200 * num_sections
-            lines.append((f"  Remote Control Louvers: {num_sections} section(s) × $2,200", op_cost))
-            total += op_cost
-        elif louver_op == "phone-controlled":
-            op_cost = (2200 * num_sections) + 700
-            lines.append((f"  App Control Louvers: {num_sections} section(s) × $2,200 + $700", op_cost))
+            is_app = louver_control == "app"
+            base_cost = 2200 * num_sections
+            op_cost = base_cost + (700 * num_sections) if is_app else base_cost
+            control_label = "App" if is_app else "Remote"
+            suffix = "× $2,200 + $700/app" if is_app else "× $2,200"
+            lines.append((f"  {control_label} Control Louvers: {num_sections} section(s) {suffix}", op_cost))
             total += op_cost
 
         # Lighting

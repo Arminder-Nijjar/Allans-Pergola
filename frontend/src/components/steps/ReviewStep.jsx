@@ -135,12 +135,12 @@ function calculatePricing(cfg) {
 
     // Louver operation
     if (cfg.louverOperation === 'motorized') {
-      const opCost = 2200 * numSections;
-      lines.push({ label: `Remote Control Louvers: ${numSections} section(s) × $2,200`, price: opCost });
-      total += opCost;
-    } else if (cfg.louverOperation === 'phone-controlled') {
-      const opCost = (2200 * numSections) + 700;
-      lines.push({ label: `App Control Louvers: ${numSections} section(s) × $2,200 + $700`, price: opCost });
+      const isApp = cfg.louverControlType === 'app';
+      const baseCost = 2200 * numSections;
+      const opCost = isApp ? baseCost + (700 * numSections) : baseCost;
+      const controlLabel = isApp ? 'App Control' : 'Remote Control';
+      const suffix = isApp ? `× $2,200 + $700/app` : '× $2,200';
+      lines.push({ label: `${controlLabel} Louvers: ${numSections} section(s) ${suffix}`, price: opCost });
       total += opCost;
     }
 
@@ -274,7 +274,8 @@ export default function ReviewStep({ cfg, setCfg, stepNum, total, onJump, compar
   rows.push({ label: 'Posts', value: `${plan.total} total · ${plan.cornerPosts} corner + ${plan.extras} support`, stepId: 'dimensions' });
 
   // Louvers
-  const opLabel = lop === 'manual' ? 'Manual' : lop === 'phone-controlled' ? 'Phone' : 'Motorized';
+  const controlTypeLabel = cfg.louverControlType === 'app' ? 'App' : 'Remote';
+  const opLabel = lop === 'manual' ? 'Manual' : `${controlTypeLabel} Control`;
   const louverValue = cfg.layout === '10x12-kit'
     ? `${opLabel} · Preference: we will confirm availability for chosen size`
     : `${sets} set${sets > 1 ? 's' : ''} · ${colorName(LOUVER_COLORS, cfg.louverColor)} · ${opLabel}`;

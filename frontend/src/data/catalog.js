@@ -113,7 +113,9 @@ export const DEFAULT_CONFIG = {
   design: 'hidden-screws',
   postSize: '6x6',
   louverOperation: 'manual',
+  louverControlType: 'remote', // 'remote' or 'app' (only applies when motorized)
   kitLouverOperation: 'motorized',
+  kitLouverControlType: 'remote', // 'remote' or 'app' for kits
   screenOperation: 'manual',
   kitLightSides: 'front-back',
   addOns: {},

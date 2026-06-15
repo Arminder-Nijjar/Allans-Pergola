@@ -47,7 +47,7 @@ export default function PergolaBuilder() {
     activeConfigTab: 'A', // 'A' | 'B' | 'compare'
   });
 
-  // Notify when a shared design is loaded from URL
+  // Notify when a shared design is loaded from URL and jump to Review
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const encoded = params.get('config');
@@ -57,12 +57,19 @@ export default function PergolaBuilder() {
         const parsed = JSON.parse(json);
         console.log('[ShareLink] Loaded config from URL:', parsed);
         toast.success('Shared design loaded', {
-          description: `Layout: ${parsed.layout || 'unknown'}. Navigate the steps to see all details.`,
+          description: `Layout: ${parsed.layout || 'unknown'}. Reviewing all details.`,
         });
+        // Auto-navigate to Review step
+        const reviewIdx = STEPS.findIndex((s) => s.id === 'review');
+        if (reviewIdx >= 0) {
+          setStepIdx(reviewIdx);
+          setMaxVisitedStep((m) => Math.max(m, reviewIdx));
+        }
       } catch (e) {
         console.error('[ShareLink] Failed to parse URL config:', e);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isKit = cfg.layout === '10x12-kit';

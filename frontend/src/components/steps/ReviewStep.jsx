@@ -92,9 +92,9 @@ export default function ReviewStep({ cfg, setCfg, stepNum, total, onJump, compar
   // Louvers
   const opLabel = lop === 'manual' ? 'Manual' : lop === 'phone-controlled' ? 'Phone' : 'Motorized';
   const louverValue = cfg.layout === '10x12-kit'
-    ? 'manual (optional: motorized/phone-controlled)'
+    ? `${opLabel} · Preference: we will confirm availability for chosen size`
     : `${sets} set${sets > 1 ? 's' : ''} · ${colorName(LOUVER_COLORS, cfg.louverColor)} · ${opLabel}`;
-  rows.push({ label: 'Louvers', value: louverValue, stepId: 'frame' });
+  rows.push({ label: 'Louvers', value: louverValue, stepId: cfg.layout === '10x12-kit' ? 'dimensions' : 'frame' });
 
   // Lighting
   if (cfg.layout === '10x12-kit') {

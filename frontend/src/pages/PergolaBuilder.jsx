@@ -47,10 +47,11 @@ export default function PergolaBuilder() {
     activeConfigTab: 'A', // 'A' | 'B' | 'compare'
   });
 
-  // Notify when a shared design is loaded from URL and jump to Review
+  // Notify when a shared design is loaded from URL and jump to specified step
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const encoded = params.get('config');
+    const stepParam = params.get('step');
     if (encoded) {
       try {
         const json = atob(decodeURIComponent(encoded));
@@ -59,14 +60,17 @@ export default function PergolaBuilder() {
         toast.success('Shared design loaded', {
           description: `Layout: ${parsed.layout || 'unknown'}. Reviewing all details.`,
         });
-        // Auto-navigate to Review step
-        const reviewIdx = STEPS.findIndex((s) => s.id === 'review');
-        if (reviewIdx >= 0) {
-          setStepIdx(reviewIdx);
-          setMaxVisitedStep((m) => Math.max(m, reviewIdx));
-        }
       } catch (e) {
         console.error('[ShareLink] Failed to parse URL config:', e);
+      }
+    }
+    // Navigate to requested step (default to review for shared links)
+    const targetStep = stepParam || (encoded ? 'review' : null);
+    if (targetStep) {
+      const targetIdx = STEPS.findIndex((s) => s.id === targetStep);
+      if (targetIdx >= 0) {
+        setStepIdx(targetIdx);
+        setMaxVisitedStep((m) => Math.max(m, targetIdx));
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

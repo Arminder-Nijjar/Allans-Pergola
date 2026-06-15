@@ -33,7 +33,7 @@ export default function QuoteStep({ cfg, stepNum, total, onSubmitted, compareSta
       const base = window.location.origin + window.location.pathname;
       const json = JSON.stringify(cfg);
       const encoded = encodeURIComponent(btoa(json));
-      return `${base}?config=${encoded}`;
+      return `${base}?config=${encoded}&step=review`;
     } catch {
       return window.location.href;
     }

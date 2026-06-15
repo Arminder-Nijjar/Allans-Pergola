@@ -112,8 +112,13 @@ def build_config_summary(config: Dict[str, Any]) -> str:
 
     post_color = config.get("postColor", "umbra-grey").replace("-", " ").title()
     louver_color = config.get("louverColor", "pure-white").replace("-", " ").title()
+    louver_op = config.get("louverOperation", "manual")
+    louver_op_label = louver_op.replace("-", " ").title()
 
     features = []
+    if layout == "10x12-kit":
+        features.append(f"Louver Operation: {louver_op_label} (preference — availability confirmed by size)")
+
     light_color = config.get("lightColor", "none")
     if light_color and light_color != "none":
         features.append(f"LED Lighting ({light_color.replace('-', ' ').title()})")

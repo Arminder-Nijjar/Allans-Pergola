@@ -11,13 +11,14 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from starlette.middleware.cors import CORSMiddleware
-import resend
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
-# Email configuration — uses Resend for delivery
-resend_api_key = os.environ.get("RESEND_API_KEY", "")
-from_email = os.environ.get("FROM_EMAIL", "onboarding@resend.dev")
-to_emails_env = os.environ.get("TO_EMAILS", "narminder1@gmail.com")
-to_emails = [e.strip() for e in to_emails_env.split(",") if e.strip()] if to_emails_env else ["narminder1@gmail.com"]
+# Email configuration — uses SendGrid for delivery
+sendgrid_api_key = os.environ.get("SENDGRID_API_KEY", "")
+from_email = os.environ.get("FROM_EMAIL", "narminder1@gmail.com")
+to_emails_env = os.environ.get("TO_EMAILS", "jane@allans.blue")
+to_emails = [e.strip() for e in to_emails_env.split(",") if e.strip()] if to_emails_env else ["jane@allans.blue"]
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,11 +26,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-if resend_api_key:
-    resend.api_key = resend_api_key
-
 # Startup diagnostic
-logger.info("Email config: from=%s to=%s key_present=%s", from_email, to_emails, bool(resend_api_key))
+logger.info("Email config: from=%s to=%s key_present=%s", from_email, to_emails, bool(sendgrid_api_key))
 
 app = FastAPI(title="Pergola Builder API", version="1.0.0")
 
@@ -294,8 +292,8 @@ def build_email_html(quote: Quote) -> str:
 
 async def send_quote_email(quote: Quote) -> None:
     """Send email notification for a new quote submission."""
-    if not resend_api_key:
-        logger.warning("Email not sent: RESEND_API_KEY missing")
+    if not sendgrid_api_key:
+        logger.warning("Email not sent: SENDGRID_API_KEY missing")
         return
     if not to_emails:
         logger.warning("Email not sent: TO_EMAILS empty")
@@ -304,16 +302,17 @@ async def send_quote_email(quote: Quote) -> None:
     html_content = build_email_html(quote)
 
     try:
-        params = {
-            "from": f"Pergola Configurator <{from_email}>",
-            "to": to_emails,
-            "subject": f"New Pergola Design - {quote.name}",
-            "html": html_content,
-            "reply_to": quote.email,
-        }
+        sg = SendGridAPIClient(sendgrid_api_key)
+        message = Mail(
+            from_email=from_email,
+            to_emails=to_emails,
+            subject=f"New Pergola Design - {quote.name}",
+            html_content=html_content,
+        )
+        message.reply_to = quote.email
         logger.info("Sending email to=%s from=%s quote=%s", to_emails, from_email, quote.id)
-        response = resend.Emails.send(params)
-        logger.info("Email sent response: %s", response)
+        response = sg.send(message)
+        logger.info("Email sent: status=%s quote=%s", response.status_code, quote.id)
     except Exception as exc:
         logger.exception("Failed to send email for quote %s: %s", quote.id, exc)
         raise

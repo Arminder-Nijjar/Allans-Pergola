@@ -2,4 +2,4 @@ fastapi==0.110.1
 pydantic>=2.6.4
 email-validator>=2.2.0
 python-multipart>=0.0.9
-resend>=0.8.0
+sendgrid>=6.11.0

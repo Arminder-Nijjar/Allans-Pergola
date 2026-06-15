@@ -275,14 +275,22 @@ def build_pricing_summary(config: Dict[str, Any]) -> str:
             lines.append((f"  {control_label} Control Louvers: {num_sections} section(s) {suffix}", op_cost))
             total += op_cost
 
-        # Lighting
+        # Lighting (per section for multi-section)
         light_color = config.get("lightColor", "none")
         if light_color == "warm" or light_color == "white":
-            lines.append(("  White LED Lights (all 4 sides)", 2850))
-            total += 2850
+            light_price = 2850 * num_sections
+            if num_sections > 1:
+                lines.append((f"  White LED Lights: {num_sections} sections × $2,850", light_price))
+            else:
+                lines.append(("  White LED Lights (all 4 sides)", light_price))
+            total += light_price
         elif light_color == "rgb":
-            lines.append(("  RGB Color-Changing Lights (all 4 sides)", 3250))
-            total += 3250
+            light_price = 3250 * num_sections
+            if num_sections > 1:
+                lines.append((f"  RGB Lights: {num_sections} sections × $3,250", light_price))
+            else:
+                lines.append(("  RGB Color-Changing Lights (all 4 sides)", light_price))
+            total += light_price
 
         # Walls ($55 per sqft)
         walls = config.get("walls", [])

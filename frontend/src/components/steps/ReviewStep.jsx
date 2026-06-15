@@ -144,13 +144,21 @@ function calculatePricing(cfg) {
       total += opCost;
     }
 
-    // Lighting
+    // Lighting (per section for multi-section)
     if (cfg.lightColor === 'warm' || cfg.lightColor === 'white') {
-      lines.push({ label: 'White LED Lights (all 4 sides)', price: 2850 });
-      total += 2850;
+      const lightPrice = 2850 * numSections;
+      const label = numSections > 1 
+        ? `White LED Lights: ${numSections} sections × $2,850` 
+        : 'White LED Lights (all 4 sides)';
+      lines.push({ label, price: lightPrice });
+      total += lightPrice;
     } else if (cfg.lightColor === 'rgb') {
-      lines.push({ label: 'RGB Color-Changing Lights (all 4 sides)', price: 3250 });
-      total += 3250;
+      const lightPrice = 3250 * numSections;
+      const label = numSections > 1 
+        ? `RGB Lights: ${numSections} sections × $3,250` 
+        : 'RGB Color-Changing Lights (all 4 sides)';
+      lines.push({ label, price: lightPrice });
+      total += lightPrice;
     }
 
     // Walls ($55/sqft)

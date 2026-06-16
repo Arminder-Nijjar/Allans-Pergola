@@ -80,13 +80,16 @@ function calculatePricing(cfg) {
         total += regularCount * 1200;
       }
       if (tallCount > 0) {
-        lines.push({ label: `Extra-Long Posts: ${tallCount} × $600`, price: tallCount * 600 });
-        total += tallCount * 600;
+        const tallTotal = tallCount * (1200 + 600);
+        lines.push({ label: `Extra-Long Posts: ${tallCount} × $600 + $1,200`, price: tallTotal });
+        total += tallTotal;
       }
     }
 
-    // Support beam
-    if (cfg.style === 'attached') {
+    // Support beam (attached style OR fan/heater add-on)
+    const addOns = cfg.addOns || {};
+    const needsBeam = cfg.style === 'attached' || addOns.fan || addOns.heater;
+    if (needsBeam) {
       lines.push({ label: 'Support Beam', price: 1200 });
       total += 1200;
     }
@@ -220,13 +223,13 @@ describe('Pricing Tests', () => {
       expect(extraLine?.price).toBe(3600);
     });
 
-    it('Extra-long posts (10-13 ft) $600', () => {
+    it('Extra-long posts (10-13 ft) $1,800 ($600 + $1,200)', () => {
       const r = calculatePricing(defaultConfig({
         sections: [{ id: 's1', length: 20, width: 10, height: 12 }],
         postPlan: { total: 5, cornerPosts: 4, extras: 1 },
       }));
       const tallLine = r.lines.find(l => l.label.includes('Long'));
-      expect(tallLine?.price).toBe(600);
+      expect(tallLine?.price).toBe(1800); // $600 tall + $1,200 extra post
     });
   });
 
@@ -357,6 +360,23 @@ describe('Pricing Tests', () => {
     it('Attached style adds $1,200', () => {
       const r = calculatePricing(defaultConfig({ style: 'attached' }));
       expect(r.lines.find(l => l.label.includes('Support Beam'))?.price).toBe(1200);
+    });
+
+    it('Fan add-on adds support beam $1,200', () => {
+      const r = calculatePricing(defaultConfig({ addOns: { fan: true } }));
+      expect(r.lines.find(l => l.label.includes('Support Beam'))?.price).toBe(1200);
+    });
+
+    it('Heater add-on adds support beam $1,200', () => {
+      const r = calculatePricing(defaultConfig({ addOns: { heater: true, heaterType: 'hanging' } }));
+      expect(r.lines.find(l => l.label.includes('Support Beam'))?.price).toBe(1200);
+    });
+
+    it('Attached + fan only charges beam once', () => {
+      const r = calculatePricing(defaultConfig({ style: 'attached', addOns: { fan: true } }));
+      const beamLines = r.lines.filter(l => l.label.includes('Support Beam'));
+      expect(beamLines.length).toBe(1);
+      expect(beamLines[0].price).toBe(1200);
     });
   });
 

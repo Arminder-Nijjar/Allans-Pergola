@@ -272,14 +272,17 @@ def build_pricing_summary(config: Dict[str, Any]) -> str:
                 total += regular_post_cost
             
             if tall_post_count > 0:
-                tall_post_cost = tall_post_count * 600
-                lines.append((f"  Extra-Long Posts (10-13 ft): {tall_post_count} × $600", tall_post_cost))
-                total += tall_post_cost
+                tall_post_total = tall_post_count * (1200 + 600)
+                lines.append((f"  Extra-Long Posts (10–13 ft): {tall_post_count} × $600 + $1,200", tall_post_total))
+                total += tall_post_total
 
-        # Support beam (if attached or needs support on short side)
+        # Support beam (attached style OR fan/heater add-on)
         style = config.get("style", "freestanding")
-        if style == "attached":
-            lines.append(("  Support Beam (attached to house)", 1200))
+        add_ons = config.get("addOns", {})
+        needs_beam = style == "attached" or add_ons.get("fan") or add_ons.get("heater")
+        if needs_beam:
+            beam_label = "Support Beam (attached to house)" if style == "attached" else "Support Beam (installed on the short side with the louvers)"
+            lines.append((f"  {beam_label}", 1200))
             total += 1200
 
         # Louver operation (per louver set)

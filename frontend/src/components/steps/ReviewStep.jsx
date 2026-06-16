@@ -121,15 +121,20 @@ function calculatePricing(cfg) {
         total += regularCost;
       }
       if (tallCount > 0) {
-        const tallCost = tallCount * 600;
-        lines.push({ label: `Extra-Long Posts (10-13 ft): ${tallCount} × $600`, price: tallCost });
-        total += tallCost;
+        const tallTotal = tallCount * (1200 + 600);
+        lines.push({ label: `Extra-Long Posts (10–13 ft): ${tallCount} × $600 + $1,200`, price: tallTotal });
+        total += tallTotal;
       }
     }
 
-    // Support beam
-    if (cfg.style === 'attached') {
-      lines.push({ label: 'Support Beam (attached to house)', price: 1200 });
+    // Support beam (attached style OR fan/heater add-on)
+    const addOns = cfg.addOns || {};
+    const needsBeam = cfg.style === 'attached' || addOns.fan || addOns.heater;
+    if (needsBeam) {
+      const beamLabel = cfg.style === 'attached'
+        ? 'Support Beam (attached to house)'
+        : 'Support Beam (installed on the short side with the louvers)';
+      lines.push({ label: beamLabel, price: 1200 });
       total += 1200;
     }
 

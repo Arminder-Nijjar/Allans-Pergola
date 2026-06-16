@@ -271,8 +271,8 @@ def build_pricing_summary(config: Dict[str, Any]) -> str:
             base_cost = 2200 * num_sections
             op_cost = base_cost + (700 * num_sections) if is_app else base_cost
             control_label = "App" if is_app else "Remote"
-            suffix = "× $2,200 + $700/app" if is_app else "× $2,200"
-            lines.append((f"  {control_label} Control Louvers: {num_sections} section(s) {suffix}", op_cost))
+            suffix = "$2,900/section" if is_app else "$2,200/section"
+            lines.append((f"  {control_label} Louvers: {num_sections} section{'s' if num_sections > 1 else ''} × {suffix}", op_cost))
             total += op_cost
 
         # Lighting (per section for multi-section)

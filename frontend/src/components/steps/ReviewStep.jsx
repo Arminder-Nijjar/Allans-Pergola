@@ -127,14 +127,11 @@ function calculatePricing(cfg) {
       }
     }
 
-    // Support beam (attached style OR fan/heater add-on)
+    // Support beam (fan or hanging heater add-on only)
     const addOns = cfg.addOns || {};
-    const needsBeam = cfg.style === 'attached' || addOns.fan || addOns.heater;
+    const needsBeam = addOns.fan || addOns.heater;
     if (needsBeam) {
-      const beamLabel = cfg.style === 'attached'
-        ? 'Support Beam (attached to house)'
-        : 'Support Beam (installed on the short side with the louvers)';
-      lines.push({ label: beamLabel, price: 1200 });
+      lines.push({ label: 'Support Beam (installed on the short side with the louvers)', price: 1200 });
       total += 1200;
     }
 

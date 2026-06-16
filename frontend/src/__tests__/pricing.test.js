@@ -86,10 +86,9 @@ function calculatePricing(cfg) {
       }
     }
 
-    // Support beam (attached style OR fan/heater add-on)
+    // Support beam (fan or hanging heater add-on only)
     const addOns = cfg.addOns || {};
-    const needsBeam = cfg.style === 'attached' || addOns.fan || addOns.heater;
-    if (needsBeam) {
+    if (addOns.fan || addOns.heater) {
       lines.push({ label: 'Support Beam', price: 1200 });
       total += 1200;
     }
@@ -357,11 +356,6 @@ describe('Pricing Tests', () => {
   });
 
   describe('Support Beam', () => {
-    it('Attached style adds $1,200', () => {
-      const r = calculatePricing(defaultConfig({ style: 'attached' }));
-      expect(r.lines.find(l => l.label.includes('Support Beam'))?.price).toBe(1200);
-    });
-
     it('Fan add-on adds support beam $1,200', () => {
       const r = calculatePricing(defaultConfig({ addOns: { fan: true } }));
       expect(r.lines.find(l => l.label.includes('Support Beam'))?.price).toBe(1200);
@@ -370,6 +364,11 @@ describe('Pricing Tests', () => {
     it('Heater add-on adds support beam $1,200', () => {
       const r = calculatePricing(defaultConfig({ addOns: { heater: true, heaterType: 'hanging' } }));
       expect(r.lines.find(l => l.label.includes('Support Beam'))?.price).toBe(1200);
+    });
+
+    it('Attached style alone does NOT add support beam', () => {
+      const r = calculatePricing(defaultConfig({ style: 'attached' }));
+      expect(r.lines.find(l => l.label.includes('Support Beam'))).toBeUndefined();
     });
 
     it('Attached + fan only charges beam once', () => {

@@ -91,10 +91,17 @@ function calculatePricing(cfg) {
       total += 1200;
     }
 
-    // Louver operation
+    // Louver operation (per louver set)
     if (cfg.louverOperation === 'motorized') {
       const isApp = cfg.louverControlType === 'app';
-      const opCost = isApp ? (2200 + 700) * numSections : 2200 * numSections;
+      // Calculate total louver sets across all sections
+      const totalSets = sections.reduce((sum, s) => {
+        const larger = Math.max(s.length || 0, s.width || 0);
+        if (larger <= 16) return sum + 1;
+        return sum + Math.ceil(larger / 15);
+      }, 0);
+      const baseCost = 2200 * totalSets;
+      const opCost = isApp ? baseCost + (700 * totalSets) : baseCost;
       lines.push({ label: `Louver Op (${isApp ? 'App' : 'Remote'})`, price: opCost });
       total += opCost;
     }
@@ -224,34 +231,45 @@ describe('Pricing Tests', () => {
   });
 
   describe('Louvers', () => {
-    it('Remote single section $2,200', () => {
+    it('Remote single section (1 set) $2,200', () => {
       const r = calculatePricing(defaultConfig({ louverOperation: 'motorized', louverControlType: 'remote' }));
       expect(r.lines.find(l => l.label.includes('Louver'))?.price).toBe(2200);
     });
 
-    it('App single section $2,900', () => {
+    it('App single section (1 set) $2,900', () => {
       const r = calculatePricing(defaultConfig({ louverOperation: 'motorized', louverControlType: 'app' }));
       expect(r.lines.find(l => l.label.includes('Louver'))?.price).toBe(2900);
     });
 
-    it('Remote 2 sections $4,400', () => {
+    it('Remote section with 2 louver sets (20×10) = $4,400', () => {
+      // 20 ft larger dimension → 2 louver sets, 2 × $2,200 = $4,400
       const r = calculatePricing(defaultConfig({
-        layout: 'l-shape',
-        sections: [{ id: 's1', length: 12, width: 10 }, { id: 's2', length: 10, width: 10 }],
+        sections: [{ id: 's1', length: 20, width: 10 }],
         louverOperation: 'motorized',
         louverControlType: 'remote',
       }));
       expect(r.lines.find(l => l.label.includes('Louver'))?.price).toBe(4400);
     });
 
-    it('App 2 sections $5,800', () => {
+    it('App section with 2 louver sets (20×10) = $5,800', () => {
+      // 20 ft larger dimension → 2 louver sets, 2 × $2,900 = $5,800
       const r = calculatePricing(defaultConfig({
-        layout: 'l-shape',
-        sections: [{ id: 's1', length: 12, width: 10 }, { id: 's2', length: 10, width: 10 }],
+        sections: [{ id: 's1', length: 20, width: 10 }],
         louverOperation: 'motorized',
         louverControlType: 'app',
       }));
       expect(r.lines.find(l => l.label.includes('Louver'))?.price).toBe(5800);
+    });
+
+    it('Remote L-shape with 2+2 sets = $8,800', () => {
+      // Section 1: 12×10 → 1 set, Section 2: 20×10 → 2 sets, total 3 sets × $2,200 = $6,600
+      const r = calculatePricing(defaultConfig({
+        layout: 'l-shape',
+        sections: [{ id: 's1', length: 12, width: 10 }, { id: 's2', length: 20, width: 10 }],
+        louverOperation: 'motorized',
+        louverControlType: 'remote',
+      }));
+      expect(r.lines.find(l => l.label.includes('Louver'))?.price).toBe(6600);
     });
 
     it('Manual = no charge', () => {

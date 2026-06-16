@@ -29,6 +29,20 @@ logger = logging.getLogger(__name__)
 # Startup diagnostic
 logger.info("Email config: from=%s to=%s key_present=%s", from_email, to_emails, bool(sendgrid_api_key))
 
+# Helper: calculate louver sets for a section (mirrors frontend logic)
+LOUVER_MAX_SPAN = 15  # ft
+
+def _louver_set_count(section: Dict[str, Any]) -> int:
+    """Number of louver sets needed for a section."""
+    length = section.get("length", 0)
+    width = section.get("width", 0)
+    larger = max(length, width)
+    # If larger dimension ≤ 16 ft → 1 set
+    if larger <= 16:
+        return 1
+    # Otherwise split larger dimension into ≤15-ft sets
+    return (larger + LOUVER_MAX_SPAN - 1) // LOUVER_MAX_SPAN  # ceiling division
+
 app = FastAPI(title="Pergola Builder API", version="1.0.0")
 
 # Add CORS middleware BEFORE routers
@@ -263,16 +277,18 @@ def build_pricing_summary(config: Dict[str, Any]) -> str:
             lines.append(("  Support Beam (attached to house)", 1200))
             total += 1200
 
-        # Louver operation (per section)
+        # Louver operation (per louver set)
         louver_op = config.get("louverOperation", "manual")
         louver_control = config.get("louverControlType", "remote")
         if louver_op == "motorized":
             is_app = louver_control == "app"
-            base_cost = 2200 * num_sections
-            op_cost = base_cost + (700 * num_sections) if is_app else base_cost
+            # Calculate total louver sets across all sections
+            total_sets = sum(_louver_set_count(s) for s in sections)
+            base_cost = 2200 * total_sets
+            op_cost = base_cost + (700 * total_sets) if is_app else base_cost
             control_label = "App" if is_app else "Remote"
-            suffix = "$2,900/section" if is_app else "$2,200/section"
-            lines.append((f"  {control_label} Louvers: {num_sections} section{'s' if num_sections > 1 else ''} × {suffix}", op_cost))
+            per_set_price = "$2,900" if is_app else "$2,200"
+            lines.append((f"  {control_label} Louvers: {total_sets} set{'s' if total_sets > 1 else ''} × {per_set_price}", op_cost))
             total += op_cost
 
         # Lighting (per section for multi-section)

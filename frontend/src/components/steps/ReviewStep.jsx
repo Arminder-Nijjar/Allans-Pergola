@@ -133,14 +133,16 @@ function calculatePricing(cfg) {
       total += 1200;
     }
 
-    // Louver operation
+    // Louver operation (per louver set)
     if (cfg.louverOperation === 'motorized') {
       const isApp = cfg.louverControlType === 'app';
-      const baseCost = 2200 * numSections;
-      const opCost = isApp ? baseCost + (700 * numSections) : baseCost;
+      // Calculate total louver sets across all sections
+      const totalSets = sections.reduce((sum, s) => sum + louverSetCount(s), 0);
+      const baseCost = 2200 * totalSets;
+      const opCost = isApp ? baseCost + (700 * totalSets) : baseCost;
       const controlLabel = isApp ? 'App Control' : 'Remote Control';
-      const suffix = isApp ? `$2,900/section` : '$2,200/section';
-      lines.push({ label: `${controlLabel} Louvers: ${numSections} section${numSections > 1 ? 's' : ''} × ${suffix}`, price: opCost });
+      const perSetPrice = isApp ? '$2,900' : '$2,200';
+      lines.push({ label: `${controlLabel} Louvers: ${totalSets} set${totalSets > 1 ? 's' : ''} × ${perSetPrice}`, price: opCost });
       total += opCost;
     }
 

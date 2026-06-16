@@ -122,5 +122,6 @@ export const DEFAULT_CONFIG = {
   groundType: 'gravel',
   heaters: [], // { sectionId, side }[] for wall-mounted heater placement
   outlets: [], // { sectionId, postKey }[] for outlet placement on posts
+  sitePhotos: [], // uploaded site photos (e.g., backyard, patio)
   notes: '', // user notes for design team
 };

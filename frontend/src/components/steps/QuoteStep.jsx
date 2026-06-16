@@ -31,7 +31,9 @@ export default function QuoteStep({ cfg, stepNum, total, onSubmitted, compareSta
   const buildShareUrl = () => {
     try {
       const base = window.location.origin + window.location.pathname;
-      const json = JSON.stringify(cfg);
+      // Strip large base64 photos from share URL
+      const configForShare = { ...cfg, sitePhotos: [] };
+      const json = JSON.stringify(configForShare);
       const encoded = encodeURIComponent(btoa(json));
       return `${base}?config=${encoded}&step=review`;
     } catch {

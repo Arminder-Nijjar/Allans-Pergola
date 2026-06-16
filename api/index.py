@@ -164,6 +164,11 @@ def build_config_summary(config: Dict[str, Any]) -> str:
     if features:
         summary_parts.append(f"<strong>Features:</strong> {', '.join(features)}")
 
+    # Site photos
+    site_photos = config.get("sitePhotos", [])
+    if site_photos:
+        summary_parts.append(f"<strong>Site Photos:</strong> {len(site_photos)} photo(s) uploaded (see attachments in email client)")
+
     return "<br>".join(summary_parts)
 
 
@@ -473,6 +478,10 @@ def build_email_html(quote: Quote) -> str:
                 </div>
             </div>
             {f'<div class="section"><div class="section-title">Notes</div><p style="margin:0;color:#555;">{quote.notes}</p></div>' if quote.notes else ''}
+            {f"""<div class="section">
+                <div class="section-title">Site Photos</div>
+                <p style="margin:0 0 10px 0;color:#555;">The customer uploaded {len(quote.config.get('sitePhotos', []))} photo(s) of the installation site. Check email attachments for images.</p>
+            </div>""" if quote.config.get("sitePhotos") else ''}
             <div class="section">
                 <div class="section-title">Submission Details</div>
                 <div class="info-row"><span class="info-label">Quote ID:</span><span class="info-value">{quote.id}</span></div>
@@ -513,7 +522,29 @@ async def send_quote_email(quote: Quote) -> None:
             html_content=html_content,
         )
         message.reply_to = quote.email
-        logger.info("Sending email to=%s from=%s quote=%s", to_emails, from_email, quote.id)
+
+        # Attach site photos if uploaded
+        site_photos = quote.config.get("sitePhotos", []) if quote.config else []
+        for i, photo in enumerate(site_photos):
+            try:
+                import base64
+                photo_data = photo.get("data", "")
+                if photo_data.startswith("data:image"):
+                    # Extract base64 content after the comma
+                    content_type = photo_data.split(";")[0].split(":")[1]
+                    base64_data = photo_data.split(",")[1]
+                    filename = photo.get("name", f"site_photo_{i+1}.jpg")
+                    attachment = {
+                        "content": base64_data,
+                        "type": content_type,
+                        "filename": filename,
+                        "disposition": "attachment",
+                    }
+                    message.add_attachment(attachment)
+            except Exception as photo_exc:
+                logger.warning("Failed to attach photo %s: %s", i, photo_exc)
+
+        logger.info("Sending email to=%s from=%s quote=%s photos=%s", to_emails, from_email, quote.id, len(site_photos))
         response = sg.send(message)
         logger.info("Email sent: status=%s quote=%s", response.status_code, quote.id)
     except Exception as exc:

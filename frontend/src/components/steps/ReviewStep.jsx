@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Pencil, Calculator } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Pencil, Calculator, Upload, X, Camera } from 'lucide-react';
 import CompareConfigsView from './CompareConfigsView';
 import { StepHeader } from './_shared';
 import { POST_COLORS, LOUVER_COLORS, SCREEN_COLORS, WALL_COLORS, LIGHT_COLORS } from '../../data/catalog';
@@ -224,7 +224,10 @@ const STEP_LABEL_MAP = {
 export default function ReviewStep({ cfg, setCfg, stepNum, total, onJump, compareState, onStartCompare, onFinishSecond, onRestartCompare, onBackToFirst, onResumeSecond }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [targetStepId, setTargetStepId] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
   const steps = getSteps(cfg);
+
+  const sitePhotos = cfg.sitePhotos || [];
 
   const openModal = (stepId) => {
     setTargetStepId(stepId);
@@ -241,6 +244,41 @@ export default function ReviewStep({ cfg, setCfg, stepNum, total, onJump, compar
 
   const updateNotes = (e) => {
     setCfg((prev) => ({ ...prev, notes: e.target.value }));
+  };
+
+  const handlePhotoUpload = useCallback((files) => {
+    const validFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result;
+        setCfg((prev) => ({
+          ...prev,
+          sitePhotos: [...(prev.sitePhotos || []), { id: Date.now() + Math.random(), data: base64, name: file.name }],
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  }, [setCfg]);
+
+  const removePhoto = useCallback((photoId) => {
+    setCfg((prev) => ({
+      ...prev,
+      sitePhotos: (prev.sitePhotos || []).filter(p => p.id !== photoId),
+    }));
+  }, [setCfg]);
+
+  const onDragOver = (e) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+  const onDragLeave = () => setDragActive(false);
+  const onDrop = (e) => {
+    e.preventDefault();
+    setDragActive(false);
+    if (e.dataTransfer.files?.length) {
+      handlePhotoUpload(e.dataTransfer.files);
+    }
   };
 
   // Calculate stats across all sections
@@ -461,6 +499,61 @@ export default function ReviewStep({ cfg, setCfg, stepNum, total, onJump, compar
         <p className="px-4 py-2 text-xs text-[#888] bg-white border-t border-[#ececea]">
           Supply only. Not including installation or delivery. Pick-up price. Taxes included in estimate.
         </p>
+      </div>
+
+      {/* Site Photos Upload */}
+      <div className="mt-4 pb-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#ececea]">
+          <div className="flex items-center gap-2">
+            <Camera className="w-4 h-4 text-[#1a7a4b]" />
+            <span className="text-[11px] pb-mono uppercase tracking-widest text-[#5b6368]">Installation Site Photos</span>
+          </div>
+        </div>
+        <div className="p-4">
+          <p className="text-xs text-[#5b6368] mb-3">
+            Upload photos of where you want the pergola installed (e.g., backyard, patio, office yard). This helps our team during the consultation.
+          </p>
+
+          {sitePhotos.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">
+              {sitePhotos.map((photo) => (
+                <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden border border-[#ececea] group">
+                  <img src={photo.data} alt="Site" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(photo.id)}
+                    className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer ${
+              dragActive ? 'border-[#1a7a4b] bg-[#e6f3eb]' : 'border-[#d8d8d4] hover:border-[#1a7a4b]'
+            }`}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => handlePhotoUpload(e.target.files)}
+              className="hidden"
+              id="site-photo-upload"
+            />
+            <label htmlFor="site-photo-upload" className="cursor-pointer flex flex-col items-center gap-1">
+              <Upload className="w-5 h-5 text-[#5b6368]" />
+              <span className="text-xs text-[#5b6368]">Click or drag photos here</span>
+              <span className="text-[10px] text-[#888]">JPEG, PNG, WebP</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Notes section */}

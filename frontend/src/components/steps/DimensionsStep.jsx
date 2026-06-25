@@ -269,8 +269,8 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
             <p className="text-sm font-semibold text-[#14171a] mb-3">Control Type</p>
             <div className="flex flex-wrap gap-3">
               {[
-                { id: 'remote', label: 'Remote Control', desc: 'Standard remote — $2,200 per section' },
-                { id: 'app', label: 'App Control', desc: 'Smartphone app +$700 — $2,900 per section' },
+                { id: 'remote', label: 'Remote Control', desc: 'Standard remote control' },
+                { id: 'app', label: 'App Control', desc: 'Smartphone app control' },
               ].map((o) => (
                 <button
                   type="button"

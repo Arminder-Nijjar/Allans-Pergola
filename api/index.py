@@ -503,54 +503,133 @@ def build_email_html(quote: Quote) -> str:
 </html>"""
 
 
+def build_customer_email_html(quote: Quote) -> str:
+    """Build a customer-friendly email for kit orders (no internal pricing)."""
+    config = quote.config or {}
+    config_summary = build_config_summary(config)
+    created_at = quote.created_at.strftime("%B %d, %Y at %I:%M %p") if isinstance(quote.created_at, datetime) else str(quote.created_at)
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Pergola Kit Order Summary</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }}
+        .container {{ max-width: 600px; margin: 0 auto; background-color: #ffffff; }}
+        .header {{ background: linear-gradient(135deg, #1a3a2f 0%, #1a7a4b 100%); color: white; padding: 30px; text-align: center; }}
+        .header h1 {{ margin: 0; font-size: 22px; font-weight: 600; }}
+        .header p {{ margin: 10px 0 0 0; opacity: 0.9; font-size: 14px; }}
+        .content {{ padding: 30px; }}
+        .section {{ margin-bottom: 25px; }}
+        .section-title {{ font-size: 14px; font-weight: 600; color: #1a7a4b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 2px solid #1a7a4b; padding-bottom: 5px; }}
+        .config-box {{ background-color: #f8f9fa; border-left: 4px solid #1a7a4b; padding: 15px; margin: 15px 0; border-radius: 0 4px 4px 0; }}
+        .footer {{ background-color: #f8f9fa; padding: 20px 30px; text-align: center; font-size: 12px; color: #666; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Thank You for Your Order!</h1>
+            <p>We've received your pergola kit configuration</p>
+        </div>
+        <div class="content">
+            <p style="margin:0 0 20px 0;color:#555;">Hi <strong>{quote.name}</strong>,</p>
+            <p style="margin:0 0 20px 0;color:#555;">Thank you for designing your pergola kit with Allan's Landscaping & Disposal. Our team will review your configuration and contact you within 1-2 business days to finalize your order.</p>
+            <div class="section">
+                <div class="section-title">Your Pergola Configuration</div>
+                <div class="config-box">{config_summary}</div>
+            </div>
+            {f"""<div class="section">
+                <div class="section-title">View Your Design</div>
+                <p style="margin:0 0 10px 0;color:#555;">Click below to see your 3D design anytime:</p>
+                <a href="{quote.share_url}" style="display:inline-block;padding:10px 20px;background:linear-gradient(135deg, #1a3a2f 0%, #1a7a4b 100%);color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Open Your Design</a>
+            </div>""" if quote.share_url else ''}
+            {f"""<div class="section">
+                <div class="section-title">Site Photos</div>
+                <p style="margin:0;color:#555;">You uploaded {len(quote.config.get('sitePhotos', []))} photo(s) of your installation site. These are attached to this email and will help our team prepare for your project.</p>
+            </div>""" if quote.config.get("sitePhotos") else ''}
+            {f'<div class="section"><div class="section-title">Notes</div><p style="margin:0;color:#555;">{quote.notes}</p></div>' if quote.notes else ''}
+        </div>
+        <div class="footer">
+            <p style="margin: 0;"><strong>Allan's Landscaping & Disposal</strong><br>Premium Aluminum Pergolas for Saskatchewan Weather</p>
+            <p style="margin: 10px 0 0 0; font-size: 11px;">This is an automated confirmation of your design submission.<br>Questions? Reply to this email or call us directly.</p>
+        </div>
+    </div>
+</body>
+</html>"""
+
+
 async def send_quote_email(quote: Quote) -> None:
-    """Send email notification for a new quote submission."""
+    """Send email notification for a new quote submission.
+
+    Routing:
+    - Freestanding / Attached (custom): internal review email ONLY to narminder1@gmail.com
+    - Kit: internal review to narminder1@gmail.com + customer summary copy to quote.email
+    """
     if not sendgrid_api_key:
         logger.warning("Email not sent: SENDGRID_API_KEY missing")
         return
-    if not to_emails:
-        logger.warning("Email not sent: TO_EMAILS empty")
-        return
 
-    html_content = build_email_html(quote)
+    internal_email = "narminder1@gmail.com"
+    layout = quote.config.get("layout", "") if quote.config else ""
+    is_kit = layout == "10x12-kit"
 
+    # --- 1. Internal review email (always sent) ---
     try:
+        html_internal = build_email_html(quote)
         sg = SendGridAPIClient(sendgrid_api_key)
-        message = Mail(
+        msg_internal = Mail(
             from_email=from_email,
-            to_emails=to_emails,
-            subject=f"New Pergola Design - {quote.name}",
-            html_content=html_content,
+            to_emails=internal_email,
+            subject=f"New Pergola Design - {quote.name} ({'Kit' if is_kit else 'Custom'})",
+            html_content=html_internal,
         )
-        message.reply_to = quote.email
+        msg_internal.reply_to = quote.email
 
-        # Attach site photos if uploaded
+        # Attach site photos
         site_photos = quote.config.get("sitePhotos", []) if quote.config else []
         for i, photo in enumerate(site_photos):
             try:
                 import base64
                 photo_data = photo.get("data", "")
                 if photo_data.startswith("data:image"):
-                    # Extract base64 content after the comma
                     content_type = photo_data.split(";")[0].split(":")[1]
                     base64_data = photo_data.split(",")[1]
                     filename = photo.get("name", f"site_photo_{i+1}.jpg")
-                    attachment = {
+                    msg_internal.add_attachment({
                         "content": base64_data,
                         "type": content_type,
                         "filename": filename,
                         "disposition": "attachment",
-                    }
-                    message.add_attachment(attachment)
+                    })
             except Exception as photo_exc:
                 logger.warning("Failed to attach photo %s: %s", i, photo_exc)
 
-        logger.info("Sending email to=%s from=%s quote=%s photos=%s", to_emails, from_email, quote.id, len(site_photos))
-        response = sg.send(message)
-        logger.info("Email sent: status=%s quote=%s", response.status_code, quote.id)
+        logger.info("Sending internal review email to=%s quote=%s photos=%s kit=%s", internal_email, quote.id, len(site_photos), is_kit)
+        resp = sg.send(msg_internal)
+        logger.info("Internal email sent: status=%s quote=%s", resp.status_code, quote.id)
     except Exception as exc:
-        logger.exception("Failed to send email for quote %s: %s", quote.id, exc)
+        logger.exception("Failed to send internal email for quote %s: %s", quote.id, exc)
         raise
+
+    # --- 2. Customer copy (kit only) ---
+    if is_kit:
+        try:
+            html_customer = build_customer_email_html(quote)
+            msg_customer = Mail(
+                from_email=from_email,
+                to_emails=quote.email,
+                subject="Your Pergola Kit Order Summary - Allan's Landscaping",
+                html_content=html_customer,
+            )
+            logger.info("Sending customer copy to=%s quote=%s", quote.email, quote.id)
+            resp2 = sg.send(msg_customer)
+            logger.info("Customer email sent: status=%s quote=%s", resp2.status_code, quote.id)
+        except Exception as exc:
+            logger.exception("Failed to send customer email for quote %s: %s", quote.id, exc)
+            # Don't raise — internal email already succeeded
 
 
 app.include_router(api_router)

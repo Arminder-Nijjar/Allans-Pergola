@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Pencil, Calculator, Upload, X, Camera } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Pencil, Upload, X, Camera } from 'lucide-react';
 import CompareConfigsView from './CompareConfigsView';
 import { StepHeader } from './_shared';
 import { POST_COLORS, LOUVER_COLORS, SCREEN_COLORS, WALL_COLORS, LIGHT_COLORS } from '../../data/catalog';
@@ -292,7 +292,7 @@ export default function ReviewStep({ cfg, setCfg, stepNum, total, onJump, compar
   const rows = [];
   
   // Calculate pricing for display
-  const pricing = useMemo(() => calculatePricing(cfg), [cfg]);
+  // Pricing is calculated server-side for email review — not shown to customer
 
   // Layout
   const sectionCount = cfg.sections.length;
@@ -464,43 +464,6 @@ export default function ReviewStep({ cfg, setCfg, stepNum, total, onJump, compar
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Pricing Estimate */}
-      <div className="mt-4 pb-card overflow-hidden bg-[#f8f9fa]">
-        <div className="px-4 py-3 border-b border-[#ececea] bg-white">
-          <div className="flex items-center gap-2">
-            <Calculator className="w-4 h-4 text-[#1a7a4b]" />
-            <span className="text-[11px] pb-mono uppercase tracking-widest text-[#5b6368]">Estimated Price</span>
-          </div>
-        </div>
-        <div className="divide-y divide-[#ececea]">
-          {pricing.lines.map((line, i) => (
-            <div key={i} className="flex items-center justify-between px-4 py-2">
-              <span className="text-sm text-[#5b6368]">{line.label}</span>
-              <span className="text-sm font-medium text-[#14171a]">${line.price.toLocaleString()}</span>
-            </div>
-          ))}
-          <div className="flex items-center justify-between px-4 py-2">
-            <span className="text-sm text-[#5b6368]">Subtotal</span>
-            <span className="text-sm font-semibold text-[#14171a]">${pricing.subtotal.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between px-4 py-2">
-            <span className="text-sm text-[#5b6368]">GST (5%)</span>
-            <span className="text-sm text-[#5b6368]">${pricing.gst.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between px-4 py-2">
-            <span className="text-sm text-[#5b6368]">PST (6%)</span>
-            <span className="text-sm text-[#5b6368]">${pricing.pst.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between px-4 py-3 bg-[#1a7a4b]/5">
-            <span className="text-sm font-semibold text-[#1a7a4b]">Estimated Total</span>
-            <span className="text-lg font-bold text-[#1a7a4b]">${pricing.total.toLocaleString()}</span>
-          </div>
-        </div>
-        <p className="px-4 py-2 text-xs text-[#888] bg-white border-t border-[#ececea]">
-          Supply only. Not including installation or delivery. Pick-up price. Taxes included in estimate.
-        </p>
       </div>
 
       {/* Site Photos Upload */}

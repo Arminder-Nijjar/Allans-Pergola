@@ -1,7 +1,7 @@
 import React from 'react';
 import { StepHeader } from './_shared';
 import { LAYOUTS, L_SHAPE_CONFIGS } from '../../data/catalog';
-import { Check } from 'lucide-react';
+import { Check, LayoutTemplate } from 'lucide-react';
 
 export default function LayoutStep({ cfg, setCfg, stepNum, total }) {
   const handleLayoutChange = (layoutId) => {
@@ -44,8 +44,8 @@ export default function LayoutStep({ cfg, setCfg, stepNum, total }) {
       <StepHeader
         stepNum={stepNum}
         total={total}
-        title="Choose your layout"
-        subtitle="Start with a single pergola or create an L-shaped configuration."
+        title="Pick a shape"
+        subtitle="One box, or an L-shape? Tap the picture you like."
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {LAYOUTS.map((layout) => {
@@ -58,7 +58,7 @@ export default function LayoutStep({ cfg, setCfg, stepNum, total }) {
               className={`pb-tile ${active ? 'pb-tile-active' : ''}`}
             >
               <div className="flex items-start justify-between mb-3">
-                <span className="pb-display text-xl font-semibold">{layout.label}</span>
+                <span className="pb-display text-2xl font-semibold">{layout.label}</span>
                 {active && <Check size={18} className="text-[#1a7a4b]" />}
               </div>
               <p className="text-sm text-[#5b6368] leading-snug">{layout.desc}</p>

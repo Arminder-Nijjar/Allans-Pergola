@@ -15,6 +15,7 @@ import AddOnsStep from '../components/steps/AddOnsStep';
 import ReviewStep from '../components/steps/ReviewStep';
 import QuoteStep from '../components/steps/QuoteStep';
 import ThankYouStep from '../components/steps/ThankYouStep';
+import CelebrateStep from '../components/steps/CelebrateStep';
 import { getSteps } from '../utils/steps';
 
 export default function PergolaBuilder() {
@@ -204,7 +205,14 @@ export default function PergolaBuilder() {
   useEffect(() => {
     const el = document.getElementById('pb-step-content');
     if (el) el.scrollTop = 0;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll so stepper is at top of viewport, not past it
+    const stepper = document.getElementById('pb-stepper-bar');
+    if (stepper) {
+      const y = stepper.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, [stepIdx, submitted]);
 
   // On 3D-edit steps the canvas is the main UI — make sure it's visible on phones
@@ -221,7 +229,7 @@ export default function PergolaBuilder() {
 
       {/* Stepper bar */}
       {!submitted && (
-        <div className="border-b border-[#ececea] bg-white sticky top-[58px] z-10">
+        <div id="pb-stepper-bar" className="border-b border-[#eaeae6] bg-white/80 backdrop-blur-md sticky top-[58px] z-10">
           <div className="max-w-[1600px] mx-auto px-4 lg:px-8 py-3">
             <Stepper steps={STEPS} current={stepIdx} onJump={setStepIdx} compareState={compareState} onSwitchConfig={switchConfig} onStartCompare={startCompare} />
           </div>
@@ -261,7 +269,7 @@ export default function PergolaBuilder() {
 
         {/* Step panel - full width when in compare view */}
         {!submitted ? (
-          <section className={`pb-card p-5 lg:p-7 flex flex-col lg:h-[calc(100vh-180px)] min-h-0 ${isCompareView ? 'lg:col-span-full' : ''}`}>
+          <section className={`bg-white rounded-2xl border border-[#eaeae6] shadow-[0_1px_3px_rgba(20,23,26,0.02),0_8px_32px_rgba(20,23,26,0.04)] p-6 lg:p-8 flex flex-col lg:h-[calc(100vh-180px)] min-h-0 ${isCompareView ? 'lg:col-span-full' : ''}`}>
             <div id="pb-step-content" className="flex-1 overflow-y-auto pb-scroll pr-1">
               <StepBody stepId={step.id} cfg={cfg} setCfg={setCfg} stepNum={stepIdx + 1} total={STEPS.length} onSubmitted={setSubmitted} onJump={setStepIdx} compareState={compareState} startCompare={startCompare} finishSecondConfig={finishSecondConfig} restartCompare={restart} goBackToFirstConfig={goBackToFirstConfig} resumeSecondConfig={resumeSecondConfig} />
             </div>
@@ -287,7 +295,7 @@ export default function PergolaBuilder() {
 
 function Header() {
   return (
-    <header className="border-b border-[#ececea] bg-white/90 backdrop-blur sticky top-0 z-20" data-testid="app-header">
+    <header className="border-b border-[#eaeae6] bg-white/85 backdrop-blur sticky top-0 z-20" data-testid="app-header">
       <div className="max-w-[1600px] mx-auto px-4 lg:px-8 h-[58px] flex items-center justify-between">
         <div className="flex items-center gap-3">
           {/* Add your logo to public/logo.png and uncomment: */}
@@ -315,6 +323,7 @@ function StepBody({ stepId, cfg, setCfg, stepNum, total, onSubmitted, onJump, co
     case 'screens': return <ScreensStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'walls': return <WallsStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'add-ons': return <AddOnsStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
+    case 'celebrate': return <CelebrateStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} />;
     case 'review': return <ReviewStep cfg={cfg} setCfg={setCfg} stepNum={stepNum} total={total} onJump={onJump} compareState={compareState} onStartCompare={startCompare} onFinishSecond={finishSecondConfig} onRestartCompare={restartCompare} onBackToFirst={goBackToFirstConfig} onResumeSecond={resumeSecondConfig} />;
     case 'quote': return <QuoteStep cfg={cfg} stepNum={stepNum} total={total} onSubmitted={onSubmitted} compareState={compareState} />;
     default: return null;
@@ -323,24 +332,24 @@ function StepBody({ stepId, cfg, setCfg, stepNum, total, onSubmitted, onJump, co
 
 function NavBar({ stepIdx, total, onBack, onNext, isQuote }) {
   return (
-    <div className="flex items-center justify-between gap-3 pt-5 mt-5 border-t border-[#ececea]">
+    <div className="flex items-center justify-between gap-4 pt-5 mt-5 border-t border-[#ececea]">
       <button
         data-testid="nav-back"
         onClick={onBack}
         disabled={stepIdx === 0}
-        className="pb-btn pb-btn-ghost"
+        className="pb-btn pb-btn-ghost text-base px-5 py-3"
       >
-        <ArrowLeft size={15} /> Back
+        <ArrowLeft size={18} /> Back
       </button>
-      <span className="text-[11px] pb-mono uppercase tracking-widest text-[#5b6368]">
+      <span className="text-sm pb-mono uppercase tracking-widest text-[#14171a] font-bold bg-[#f3f3ef] px-4 py-2 rounded-full">
         {String(stepIdx + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
       </span>
       {!isQuote ? (
-        <button data-testid="nav-next" onClick={onNext} className="pb-btn pb-btn-primary">
-          Next <ArrowRight size={15} />
+        <button data-testid="nav-next" onClick={onNext} className="pb-btn pb-btn-accent text-base px-6 py-3">
+          Next <ArrowRight size={18} />
         </button>
       ) : (
-        <span className="text-[11px] text-[#5b6368]">Submit form to finish</span>
+        <span className="text-sm text-[#5b6368] font-medium">Fill the form to finish</span>
       )}
     </div>
   );

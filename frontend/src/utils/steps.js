@@ -5,10 +5,11 @@ export const ALL_STEPS = [
   { id: 'layout', label: 'Layout' },
   { id: 'dimensions', label: 'Size' },
   { id: 'frame', label: 'Colour' },
+  { id: 'lights', label: 'Lights' },
   { id: 'walls', label: 'Walls' },
   { id: 'screens', label: 'Screens' },
-  { id: 'lights', label: 'Lights' },
   { id: 'add-ons', label: 'Add-ons' },
+  { id: 'celebrate', label: 'Done!' },
   { id: 'review', label: 'Review' },
   { id: 'quote', label: 'Submit' },
 ];

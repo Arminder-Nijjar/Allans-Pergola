@@ -1,24 +1,25 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
+import * as THREE from 'three';
 import { POST_COLORS, LOUVER_COLORS, SCREEN_COLORS, WALL_COLORS, LIGHT_COLORS } from '../../data/catalog';
 import { postPlan, segmentsForSide, louverSetCount } from '../../utils/pergolaRules';
 import { FT_TO_M, getPerimeterPath, getHouseWallSegments, getLShapeSupportPosts, isSideFullyInterior } from '../../utils/pergolaLayout';
 
-const POST_THICK = 0.16;
-const BEAM_THICK = 0.14;
+const POST_THICK = 0.22;
+const BEAM_THICK = 0.22;
 const LOUVER_THICK = 0.035;
 const LOUVER_DEPTH = 0.26;
 const LOUVER_SPACING = 0.27;
 
-// Premium materials shared
+// Matte materials shared
 const aluminumMaterial = (color) => (
   <meshStandardMaterial 
     color={color} 
-    metalness={0.9} 
-    roughness={0.2}
-    clearcoat={1.0}
-    clearcoatRoughness={0.05}
+    metalness={0.2} 
+    roughness={0.7}
+    clearcoat={0.15}
+    clearcoatRoughness={0.75}
   />
 );
 
@@ -33,36 +34,25 @@ function addOnsHeaterColor(cfg) {
 // Memoized components for performance with proper cleanup
 const Post = React.memo(({ position, height, color }) => {
   const meshRef = React.useRef();
-  const capRef = React.useRef();
-  
+
   React.useEffect(() => {
     const mesh = meshRef.current;
-    const cap = capRef.current;
     return () => {
       if (mesh) {
         mesh.geometry?.dispose();
         mesh.material?.dispose();
       }
-      if (cap) {
-        cap.geometry?.dispose();
-        cap.material?.dispose();
-      }
     };
   }, []);
-  
+
+  // Post extends to top of beam structure
+  const totalHeight = height + BEAM_THICK;
+
   return (
-    <group>
-      {/* Main post */}
-      <mesh ref={meshRef} position={[position[0], height / 2, position[1]]} castShadow receiveShadow>
-        <boxGeometry args={[POST_THICK, height, POST_THICK]} />
-        {aluminumMaterial(color)}
-      </mesh>
-      {/* Premium decorative cap on top */}
-      <mesh ref={capRef} position={[position[0], height + 0.04, position[1]]} castShadow>
-        <cylinderGeometry args={[POST_THICK * 0.7, POST_THICK * 0.7, 0.08, 8]} />
-        {aluminumMaterial(color)}
-      </mesh>
-    </group>
+    <mesh ref={meshRef} position={[position[0], totalHeight / 2, position[1]]} castShadow receiveShadow>
+      <boxGeometry args={[POST_THICK, totalHeight, POST_THICK]} />
+      {aluminumMaterial(color)}
+    </mesh>
   );
 });
 
@@ -79,20 +69,11 @@ const Beam = React.memo(({ position, args, color }) => {
     };
   }, []);
 
-  // Premium rounded beam look with decorative trim
   return (
-    <group position={position}>
-      {/* Main beam */}
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[args[0] - 0.02, args[1], args[2] - 0.02]} />
-        {aluminumMaterial(color)}
-      </mesh>
-      {/* Decorative edge trim */}
-      <mesh position={[0, args[1]/2 + 0.01, 0]} castShadow>
-        <boxGeometry args={[args[0], 0.02, args[2]]} />
-        {aluminumMaterial(color)}
-      </mesh>
-    </group>
+    <mesh ref={meshRef} position={position} castShadow receiveShadow>
+      <boxGeometry args={args} />
+      {aluminumMaterial(color)}
+    </mesh>
   );
 });
 
@@ -101,7 +82,7 @@ const WallHeater = React.memo(({ side, x0, x1, z0, z1, height, color = '#222', o
   const HEATER_W = 0.85;
   const HEATER_H = 0.18;
   const HEATER_D = 0.10;
-  const MOUNT_Y = height - 0.02;
+  const MOUNT_Y = height - 0.15;
 
   // Center of side with optional offset for multiple heaters
   let cx, cz;
@@ -140,13 +121,13 @@ const WallHeater = React.memo(({ side, x0, x1, z0, z1, height, color = '#222', o
         <planeGeometry args={[HEATER_W - 0.08, HEATER_H - 0.05]} />
         <meshStandardMaterial color="#ff7a33" emissive="#ff5a1a" emissiveIntensity={1.4} roughness={0.8} />
       </mesh>
-      {/* Mount brackets */}
-      <mesh position={[-HEATER_W / 2 + 0.09, 0, -HEATER_D / 2 - 0.02]}>
-        <boxGeometry args={[0.035, HEATER_H + 0.04, 0.06]} />
+      {/* Mount brackets — longer to reach up to beam */}
+      <mesh position={[-HEATER_W / 2 + 0.09, 0.065, -HEATER_D / 2 - 0.04]}>
+        <boxGeometry args={[0.035, 0.22, 0.14]} />
         <meshStandardMaterial color="#888" roughness={0.5} metalness={0.7} />
       </mesh>
-      <mesh position={[HEATER_W / 2 - 0.09, 0, -HEATER_D / 2 - 0.02]}>
-        <boxGeometry args={[0.035, HEATER_H + 0.04, 0.06]} />
+      <mesh position={[HEATER_W / 2 - 0.09, 0.065, -HEATER_D / 2 - 0.04]}>
+        <boxGeometry args={[0.035, 0.22, 0.14]} />
         <meshStandardMaterial color="#888" roughness={0.5} metalness={0.7} />
       </mesh>
     </group>
@@ -285,14 +266,14 @@ const LouverSet = React.memo(({ x0, x1, z0, z1, height, tilt, color, runAlong })
       }
     }
     
-    // Shared material to reduce GPU state changes - realistic aluminum
+    // Matte aluminum material
     const mat = (
       <meshStandardMaterial 
         color={color} 
-        metalness={0.85} 
-        roughness={0.25}
-        clearcoat={0.8}
-        clearcoatRoughness={0.1}
+        metalness={0.15} 
+        roughness={0.75}
+        clearcoat={0.1}
+        clearcoatRoughness={0.8}
       />
     );
     
@@ -313,15 +294,15 @@ const LouverSet = React.memo(({ x0, x1, z0, z1, height, tilt, color, runAlong })
 
 const HorizontalAttachBeam = React.memo(({ x0, x1, z0, z1, height, side, color }) => {
   if (side === 'front') {
-    return <Beam position={[(x0 + x1) / 2, height + BEAM_THICK / 2, z1]} args={[x1 - x0, BEAM_THICK, BEAM_THICK]} color={color} />;
+    return <Beam position={[(x0 + x1) / 2, height + BEAM_THICK / 2, z1]} args={[x1 - x0 + 0.02, BEAM_THICK, BEAM_THICK]} color={color} />;
   }
   if (side === 'back') {
-    return <Beam position={[(x0 + x1) / 2, height + BEAM_THICK / 2, z0]} args={[x1 - x0, BEAM_THICK, BEAM_THICK]} color={color} />;
+    return <Beam position={[(x0 + x1) / 2, height + BEAM_THICK / 2, z0]} args={[x1 - x0 + 0.02, BEAM_THICK, BEAM_THICK]} color={color} />;
   }
   if (side === 'left') {
-    return <Beam position={[x0, height + BEAM_THICK / 2, (z0 + z1) / 2]} args={[BEAM_THICK, BEAM_THICK, z1 - z0]} color={color} />;
+    return <Beam position={[x0, height + BEAM_THICK / 2, (z0 + z1) / 2]} args={[BEAM_THICK, BEAM_THICK, z1 - z0 + 0.02]} color={color} />;
   }
-  return <Beam position={[x1, height + BEAM_THICK / 2, (z0 + z1) / 2]} args={[BEAM_THICK, BEAM_THICK, z1 - z0]} color={color} />;
+  return <Beam position={[x1, height + BEAM_THICK / 2, (z0 + z1) / 2]} args={[BEAM_THICK, BEAM_THICK, z1 - z0 + 0.02]} color={color} />;
 });
 
 const HouseWall = React.memo(({ x0, x1, z0, z1, height, side, fixed }) => {
@@ -370,27 +351,325 @@ function panelGeom(mod, side, a, b, height, thickness) {
   return { pos: [mod.x + mod.w, height / 2, (a + b) / 2], args: [thickness, height, b - a - 0.05] };
 }
 
+// Helpers for fabric texture generation
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.lineTo(x + w - r, y);
+  c.quadraticCurveTo(x + w, y, x + w, y + r);
+  c.lineTo(x + w, y + h - r);
+  c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  c.lineTo(x + r, y + h);
+  c.quadraticCurveTo(x, y + h, x, y + h - r);
+  c.lineTo(x, y + r);
+  c.quadraticCurveTo(x, y, x + r, y);
+  c.closePath();
+}
+
+// Shared weave settings
+const TEX_SIZE = 1024;
+const TPI = 24;
+const CELL = TEX_SIZE / TPI;
+const THREAD_W = CELL * 0.80;   // very dense weave, mostly opaque
+const GAP = CELL - THREAD_W;
+const HALF_GAP = GAP / 2;
+
+// Color map: realistic woven fabric with gradients, shadows, highlights
+const screenMeshTexture = (() => {
+  const canvas = document.createElement('canvas');
+  canvas.width = TEX_SIZE;
+  canvas.height = TEX_SIZE;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
+
+  function drawThread(x, y, w, h, isVertical) {
+    // Shadow beneath thread
+    ctx.fillStyle = '#0a0a0a';
+    if (isVertical) {
+      ctx.fillRect(x + 1, y + 2, w, h);
+    } else {
+      ctx.fillRect(x + 2, y + 1, w, h);
+    }
+
+    // Main thread body with rounded gradient
+    const grad = ctx.createLinearGradient(
+      isVertical ? x : x, isVertical ? y : y,
+      isVertical ? x + w : x + w, isVertical ? y + h : y + h
+    );
+    grad.addColorStop(0, '#b8a898');
+    grad.addColorStop(0.35, '#e8ddd0');
+    grad.addColorStop(0.5, '#f5ede6');
+    grad.addColorStop(0.65, '#e0d4c6');
+    grad.addColorStop(1, '#a89888');
+
+    ctx.fillStyle = grad;
+    roundRect(ctx, x, y, w, h, w * 0.25);
+    ctx.fill();
+
+    // Highlight strip for cylindrical thread look
+    const hlGrad = ctx.createLinearGradient(
+      isVertical ? x + w * 0.25 : x + w * 0.2,
+      isVertical ? y + h * 0.1 : y + h * 0.25,
+      isVertical ? x + w * 0.75 : x + w * 0.8,
+      isVertical ? y + h * 0.9 : y + h * 0.75
+    );
+    hlGrad.addColorStop(0, 'rgba(255,255,255,0)');
+    hlGrad.addColorStop(0.5, 'rgba(255,255,255,0.35)');
+    hlGrad.addColorStop(1, 'rgba(255,255,255,0)');
+
+    ctx.fillStyle = hlGrad;
+    roundRect(ctx, x + w * 0.15, y + h * 0.1, w * 0.7, h * 0.8, w * 0.15);
+    ctx.fill();
+  }
+
+  // Horizontal threads
+  for (let y = 0; y < TEX_SIZE; y += CELL) {
+    for (let x = 0; x < TEX_SIZE; x += CELL) {
+      drawThread(x + HALF_GAP, y + HALF_GAP, THREAD_W, THREAD_W, false);
+    }
+  }
+  // Vertical threads on top with weave shift
+  for (let x = 0; x < TEX_SIZE; x += CELL) {
+    for (let y = 0; y < TEX_SIZE; y += CELL) {
+      const shift = (Math.floor(x / CELL) % 2 === 0) ? 0 : CELL * 0.1;
+      drawThread(x + HALF_GAP, y + HALF_GAP + shift, THREAD_W, THREAD_W, true);
+    }
+  }
+
+  // Subtle noise
+  const imageData = ctx.getImageData(0, 0, TEX_SIZE, TEX_SIZE);
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i] > 50) {
+      const n = (Math.random() - 0.5) * 12;
+      d[i]     = Math.min(255, Math.max(0, d[i] + n));
+      d[i + 1] = Math.min(255, Math.max(0, d[i + 1] + n));
+      d[i + 2] = Math.min(255, Math.max(0, d[i + 2] + n));
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(12, 12);
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  texture.anisotropy = 4;
+  return texture;
+})();
+
+// Alpha map: binary black/white mask for clean opaque threads
+const screenAlphaTexture = (() => {
+  const canvas = document.createElement('canvas');
+  canvas.width = TEX_SIZE;
+  canvas.height = TEX_SIZE;
+  const ctx = canvas.getContext('2d');
+
+  // Pure black = fully transparent (holes)
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
+
+  // Pure white = fully opaque (threads)
+  ctx.fillStyle = '#ffffff';
+
+  function drawWhiteThread(x, y, w, h, isVertical) {
+    roundRect(ctx, x, y, w, h, w * 0.2);
+    ctx.fill();
+  }
+
+  // Horizontal threads
+  for (let y = 0; y < TEX_SIZE; y += CELL) {
+    for (let x = 0; x < TEX_SIZE; x += CELL) {
+      drawWhiteThread(x + HALF_GAP, y + HALF_GAP, THREAD_W, THREAD_W, false);
+    }
+  }
+  // Vertical threads on top with weave shift
+  for (let x = 0; x < TEX_SIZE; x += CELL) {
+    for (let y = 0; y < TEX_SIZE; y += CELL) {
+      const shift = (Math.floor(x / CELL) % 2 === 0) ? 0 : CELL * 0.1;
+      drawWhiteThread(x + HALF_GAP, y + HALF_GAP + shift, THREAD_W, THREAD_W, true);
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(12, 12);
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  texture.anisotropy = 4;
+  return texture;
+})();
+
 const Screen = React.memo(({ mod, side, a, b, height, color }) => {
-  // Full coverage from ground to beam top (no gap)
   const fullHeight = height + BEAM_THICK;
-  const { pos, args } = panelGeom(mod, side, a, b, fullHeight, 0.045);
+
+  // Bottom rail + slat height
+  const railH = 0.06;
+  const slatH = 0.025;
+  const bottomSolidH = railH + slatH;
+
+  // Fabric starts above the slat so threads don't show in slat area
+  const fabricHeight = fullHeight - bottomSolidH;
+  const fabricY = bottomSolidH + fabricHeight / 2;
+
+  let fabricPos, fabricArgs;
+  if (side === 'front' || side === 'back') {
+    fabricPos = [(a + b) / 2, fabricY, mod.z + mod.d];
+    if (side === 'back') fabricPos[2] = mod.z;
+    fabricArgs = [b - a - 0.05, fabricHeight, 0.08];
+  } else {
+    fabricPos = [mod.x, fabricY, (a + b) / 2];
+    if (side === 'right') fabricPos[0] = mod.x + mod.w;
+    fabricArgs = [0.08, fabricHeight, b - a - 0.05];
+  }
+
+  // Bottom rail strip
+  const railD = 0.055;
+  let railPos, railArgs;
+  if (side === 'front' || side === 'back') {
+    railPos = [fabricPos[0], railH / 2, fabricPos[2]];
+    railArgs = [fabricArgs[0], railH, railD];
+  } else {
+    railPos = [fabricPos[0], railH / 2, fabricPos[2]];
+    railArgs = [railD, railH, fabricArgs[2]];
+  }
+
+  // Small aluminum slat at bottom of screen fabric
+  const slatD = 0.04;
+  let slatPos, slatArgs;
+  if (side === 'front' || side === 'back') {
+    slatPos = [fabricPos[0], railH + slatH / 2, fabricPos[2]];
+    slatArgs = [fabricArgs[0], slatH, slatD];
+  } else {
+    slatPos = [fabricPos[0], railH + slatH / 2, fabricPos[2]];
+    slatArgs = [slatD, slatH, fabricArgs[2]];
+  }
+
   return (
-    <mesh position={pos} castShadow>
-      <boxGeometry args={args} />
-      <meshStandardMaterial color={color} transparent opacity={0.7} metalness={0.1} roughness={0.4} />
-    </mesh>
+    <group>
+      {/* Fabric panel — starts above the slat so threads don't overlap slat area */}
+      <mesh position={fabricPos}>
+        <boxGeometry args={fabricArgs} />
+        <meshStandardMaterial
+          map={screenMeshTexture}
+          alphaMap={screenAlphaTexture}
+          color={color || '#2e2e2e'}
+          transparent
+          alphaTest={0.5}
+          side={THREE.DoubleSide}
+          roughness={0.85}
+          metalness={0.05}
+        />
+      </mesh>
+      {/* Bottom rail matching screen color */}
+      <mesh position={railPos} castShadow>
+        <boxGeometry args={railArgs} />
+        <meshStandardMaterial color={color || '#ddd'} roughness={0.5} metalness={0.5} />
+      </mesh>
+      {/* Bottom slat matching screen color */}
+      <mesh position={slatPos} castShadow>
+        <boxGeometry args={slatArgs} />
+        <meshStandardMaterial color={color || '#ddd'} roughness={0.45} metalness={0.55} />
+      </mesh>
+    </group>
   );
 });
 
+// Procedural slat plank texture — solid wall that looks like continuous slats with no gaps
+const slatPlankTexture = (() => {
+  const W = 512;
+  const H = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Base wood color
+  ctx.fillStyle = '#d4b896';
+  ctx.fillRect(0, 0, W, H);
+
+  // Horizontal plank seams (darker lines)
+  const plankCount = 16;
+  const plankH = H / plankCount;
+  for (let i = 0; i <= plankCount; i++) {
+    const y = i * plankH;
+    ctx.fillStyle = 'rgba(80, 55, 30, 0.25)';
+    ctx.fillRect(0, y - 1, W, 2);
+  }
+
+  // Subtle wood grain lines
+  for (let i = 0; i < 120; i++) {
+    const y = Math.random() * H;
+    ctx.strokeStyle = `rgba(${100 + Math.random() * 60}, ${70 + Math.random() * 40}, ${40 + Math.random() * 30}, ${0.05 + Math.random() * 0.1})`;
+    ctx.lineWidth = 0.5 + Math.random() * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    let cx = 0;
+    while (cx < W) {
+      cx += 10 + Math.random() * 30;
+      ctx.lineTo(cx, y + (Math.random() - 0.5) * 4);
+    }
+    ctx.stroke();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+})();
+
 const SolidWall = React.memo(({ mod, side, a, b, height, color }) => {
-  // Full coverage from ground to beam top (no gap)
+  // Zero-gap slatted wall — slats fill full height from bottom (y=0) to top beam with no gaps
   const fullHeight = height + BEAM_THICK;
-  const { pos, args } = panelGeom(mod, side, a, b, fullHeight, 0.06);
+  const targetSlatH = 0.15; // ~15cm target slat height
+  const slatDepth = 0.06;
+  const seamGap = 0.002; // 2mm shadow gap between slats
+  const count = Math.max(2, Math.round(fullHeight / targetSlatH));
+  // total = count * slatH + (count - 1) * seamGap = fullHeight
+  const slatH = (fullHeight - (count - 1) * seamGap) / count;
+
+  const slats = useMemo(() => {
+    const slatData = [];
+    for (let i = 0; i < count; i++) {
+      const y = slatH / 2 + i * (slatH + seamGap); // first slat bottom edge at 0
+      let position, scale;
+      if (side === 'front') {
+        position = [(a + b) / 2, y, mod.z + mod.d];
+        scale = [b - a - 0.05, slatH, slatDepth];
+      } else if (side === 'back') {
+        position = [(a + b) / 2, y, mod.z];
+        scale = [b - a - 0.05, slatH, slatDepth];
+      } else if (side === 'left') {
+        position = [mod.x, y, (a + b) / 2];
+        scale = [slatDepth, slatH, b - a - 0.05];
+      } else {
+        position = [mod.x + mod.w, y, (a + b) / 2];
+        scale = [slatDepth, slatH, b - a - 0.05];
+      }
+      slatData.push({ position, scale, key: i });
+    }
+    return slatData;
+  }, [count, slatH, seamGap, side, a, b, mod]);
+
+  const material = useMemo(() => (
+    <meshStandardMaterial color={color} roughness={0.6} metalness={0.05} />
+  ), [color]);
+
   return (
-    <mesh position={pos} castShadow receiveShadow>
-      <boxGeometry args={args} />
-      <meshStandardMaterial color={color} roughness={0.7} metalness={0.05} transparent={false} />
-    </mesh>
+    <>
+      {slats.map((slat) => (
+        <mesh key={slat.key} position={slat.position} castShadow receiveShadow>
+          <boxGeometry args={slat.scale} />
+          {material}
+        </mesh>
+      ))}
+    </>
   );
 });
 
@@ -402,14 +681,13 @@ const SlattedWall = React.memo(({ mod, side, a, b, height, color, gapIn }) => {
   const unit = slatH + gap;
   // Full coverage from ground to beam top (no gap)
   const fullHeight = height + BEAM_THICK;
-  const usable = fullHeight - 0.05;
+  const usable = fullHeight - 0.01;
   const rawCount = Math.max(2, Math.floor(usable / unit));
   
-  // PERFORMANCE: Cap slat count at 16 to prevent too many draw calls
-  const count = Math.min(rawCount, 16);
+  const count = rawCount;
   
   const totalSpan = count * slatH + (count - 1) * gap;
-  const startY = (usable - totalSpan) / 2 + slatH / 2 + 0.025;
+  const startY = slatH / 2 + 0.005; // first slat bottom edge near ground
   
   // OPTIMIZED: Pre-calculate all slat data in useMemo
   const slats = useMemo(() => {
@@ -570,8 +848,57 @@ function SectionHoverPlane() {
   return null;
 }
 
+// Shared animated light material hook — used by all light strips including junctions
+function useAnimatedLightMaterial(color, intensity, cfg) {
+  const { invalidate } = useThree();
+
+  const mat = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: intensity,
+      toneMapped: false,
+    });
+  }, []);
+
+  const isRgbRef = useRef(false);
+  const tRef = useRef(0);
+
+  useEffect(() => {
+    isRgbRef.current = cfg.lightColor === 'rgb';
+    if (!isRgbRef.current) {
+      tRef.current = 0;
+      mat.color.set(color);
+      mat.emissive.set(color);
+      mat.emissiveIntensity = intensity;
+    }
+  }, [cfg.lightColor, color, intensity, mat]);
+
+  useFrame((_, delta) => {
+    if (!isRgbRef.current) return;
+    tRef.current += delta;
+    const t = tRef.current;
+
+    if (t < 1) {
+      mat.color.setRGB(1 - t, t, 0);
+    } else if (t < 2) {
+      const p = t - 1;
+      mat.color.setRGB(0, 1 - p, p);
+    } else if (t < 3) {
+      const p = t - 2;
+      mat.color.setRGB(p, 0, 1 - p);
+    } else {
+      mat.color.setRGB(1, 0, 0);
+    }
+    mat.emissive.copy(mat.color);
+    invalidate();
+  });
+
+  return mat;
+}
+
 // LED strip lights under beams — visible glowing strips with floor reflection
-const PerimeterLightStrip = React.memo(({ modules, color, intensity = 2.5, cfg }) => {
+const PerimeterLightStrip = React.memo(({ modules, mat, cfg }) => {
   const lightStrips = useMemo(() => {
     if (!modules.length) return [];
 
@@ -580,7 +907,8 @@ const PerimeterLightStrip = React.memo(({ modules, color, intensity = 2.5, cfg }
     modules.forEach((mod) => {
       const x0 = mod.x, x1 = mod.x + mod.w;
       const z0 = mod.z, z1 = mod.z + mod.d;
-      const y = mod.h - 0.03; // just below beam
+      const y = mod.h + BEAM_THICK - 0.09; // just below louvers, on beam underside
+      const inset = 0.03; // nudge slightly inside so strip faces interior
 
       let hasBack, hasFront, hasLeft, hasRight;
       if (cfg.layout === '10x12-kit') {
@@ -596,18 +924,14 @@ const PerimeterLightStrip = React.memo(({ modules, color, intensity = 2.5, cfg }
         hasRight = cfg.style !== 'attached' || cfg.attachedSide !== 'right';
       }
 
-      if (hasBack) strips.push({ key: `light-${mod.sectionId}-back`, pos: [(x0 + x1) / 2, y, z0], len: x1 - x0 - 0.3, rot: 0, target: [(x0 + x1) / 2, 0, z0] });
-      if (hasFront) strips.push({ key: `light-${mod.sectionId}-front`, pos: [(x0 + x1) / 2, y, z1], len: x1 - x0 - 0.3, rot: 0, target: [(x0 + x1) / 2, 0, z1] });
-      if (hasLeft) strips.push({ key: `light-${mod.sectionId}-left`, pos: [x0, y, (z0 + z1) / 2], len: z1 - z0 - 0.3, rot: Math.PI / 2, target: [x0, 0, (z0 + z1) / 2] });
-      if (hasRight) strips.push({ key: `light-${mod.sectionId}-right`, pos: [x1, y, (z0 + z1) / 2], len: z1 - z0 - 0.3, rot: Math.PI / 2, target: [x1, 0, (z0 + z1) / 2] });
+      if (hasBack) strips.push({ key: `light-${mod.sectionId}-back`, pos: [(x0 + x1) / 2, y, z0 + BEAM_THICK / 2 + inset], len: x1 - x0 - BEAM_THICK, rot: 0, target: [(x0 + x1) / 2, 0, z0 + BEAM_THICK / 2 + inset] });
+      if (hasFront) strips.push({ key: `light-${mod.sectionId}-front`, pos: [(x0 + x1) / 2, y, z1 - BEAM_THICK / 2 - inset], len: x1 - x0 - BEAM_THICK, rot: 0, target: [(x0 + x1) / 2, 0, z1 - BEAM_THICK / 2 - inset] });
+      if (hasLeft) strips.push({ key: `light-${mod.sectionId}-left`, pos: [x0 + BEAM_THICK / 2 + inset, y, (z0 + z1) / 2], len: z1 - z0 - BEAM_THICK, rot: Math.PI / 2, target: [x0 + BEAM_THICK / 2 + inset, 0, (z0 + z1) / 2] });
+      if (hasRight) strips.push({ key: `light-${mod.sectionId}-right`, pos: [x1 - BEAM_THICK / 2 - inset, y, (z0 + z1) / 2], len: z1 - z0 - BEAM_THICK, rot: Math.PI / 2, target: [x1 - BEAM_THICK / 2 - inset, 0, (z0 + z1) / 2] });
     });
 
     return strips;
   }, [modules, cfg]);
-
-  const emissiveMat = useMemo(() => (
-    <meshStandardMaterial color={color} emissive={color} emissiveIntensity={intensity} toneMapped={false} />
-  ), [color, intensity]);
 
   return (
     <group>
@@ -616,32 +940,13 @@ const PerimeterLightStrip = React.memo(({ modules, color, intensity = 2.5, cfg }
           {/* Glowing LED strip body */}
           <mesh position={strip.pos} rotation={[0, strip.rot, 0]}>
             <boxGeometry args={[strip.len, 0.05, 0.12]} />
-            {emissiveMat}
+            <primitive object={mat} attach="material" />
           </mesh>
           {/* Clear diffuser cap */}
           <mesh position={[strip.pos[0], strip.pos[1] - 0.03, strip.pos[2]]} rotation={[0, strip.rot, 0]}>
             <boxGeometry args={[strip.len, 0.012, 0.125]} />
             <meshStandardMaterial color="#ffffff" transparent opacity={0.35} roughness={0.1} />
           </mesh>
-          {/* Downward spotLight for floor pool reflection */}
-          <spotLight
-            position={strip.pos}
-            target-position={strip.target}
-            intensity={1.5}
-            angle={Math.PI / 3}
-            penumbra={0.8}
-            distance={12}
-            decay={2}
-            color={color}
-          />
-          {/* Small point light for ambient glow near strip */}
-          <pointLight
-            position={[strip.pos[0], strip.pos[1] + 0.1, strip.pos[2]]}
-            intensity={0.8}
-            distance={4}
-            decay={2}
-            color={color}
-          />
         </group>
       ))}
     </group>
@@ -653,22 +958,119 @@ const DimLabel = React.memo(({ position, text }) => {
     <Html position={position} center distanceFactor={9} zIndexRange={[0, 0]}>
       <div
         style={{
-          background: 'rgba(20,23,26,0.92)',
-          color: '#fff',
-          padding: '3px 9px',
-          borderRadius: '999px',
-          fontFamily: 'JetBrains Mono, monospace',
-          fontSize: '10.5px',
-          fontWeight: 600,
-          letterSpacing: '0.06em',
+          background: 'rgba(255,255,255,0.9)',
+          color: '#222',
+          padding: '1px 6px',
+          borderRadius: '3px',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '10px',
+          fontWeight: 500,
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
           userSelect: 'none',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
         }}
       >
         {text}
       </div>
     </Html>
+  );
+});
+
+const DimLine = React.memo(({ start, end, text, extA, extB, color = '#d32f2f' }) => {
+  const dimLineRef = useRef();
+  const extALineRef = useRef();
+  const extBLineRef = useRef();
+  const startArrowRef = useRef();
+  const endArrowRef = useRef();
+
+  const dir = useMemo(() => {
+    const d = new THREE.Vector3(end[0] - start[0], end[1] - start[1], end[2] - start[2]);
+    return d.normalize();
+  }, [start, end]);
+
+  const mid = useMemo(() => [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2, (start[2] + end[2]) / 2], [start, end]);
+
+  const qStart = useMemo(() => {
+    const up = new THREE.Vector3(0, 1, 0);
+    return new THREE.Quaternion().setFromUnitVectors(up, dir);
+  }, [dir]);
+
+  const qEnd = useMemo(() => {
+    const up = new THREE.Vector3(0, 1, 0);
+    return new THREE.Quaternion().setFromUnitVectors(up, dir.clone().negate());
+  }, [dir]);
+
+  // Imperatively update geometry so lines always follow current coordinates
+  useEffect(() => {
+    if (dimLineRef.current) {
+      const pos = dimLineRef.current.geometry.attributes.position;
+      pos.setXYZ(0, start[0], start[1], start[2]);
+      pos.setXYZ(1, end[0], end[1], end[2]);
+      pos.needsUpdate = true;
+    }
+    if (extALineRef.current && extA) {
+      const pos = extALineRef.current.geometry.attributes.position;
+      pos.setXYZ(0, extA[0], extA[1], extA[2]);
+      pos.setXYZ(1, start[0], start[1], start[2]);
+      pos.needsUpdate = true;
+      extALineRef.current.computeLineDistances();
+    }
+    if (extBLineRef.current && extB) {
+      const pos = extBLineRef.current.geometry.attributes.position;
+      pos.setXYZ(0, extB[0], extB[1], extB[2]);
+      pos.setXYZ(1, end[0], end[1], end[2]);
+      pos.needsUpdate = true;
+      extBLineRef.current.computeLineDistances();
+    }
+    if (startArrowRef.current) {
+      startArrowRef.current.position.set(start[0], start[1], start[2]);
+      startArrowRef.current.quaternion.set(qStart.x, qStart.y, qStart.z, qStart.w);
+    }
+    if (endArrowRef.current) {
+      endArrowRef.current.position.set(end[0], end[1], end[2]);
+      endArrowRef.current.quaternion.set(qEnd.x, qEnd.y, qEnd.z, qEnd.w);
+    }
+  }, [start, end, extA, extB, qStart, qEnd]);
+
+  return (
+    <group>
+      <line ref={dimLineRef}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" count={2} array={new Float32Array([...start, ...end])} itemSize={3} />
+        </bufferGeometry>
+        <lineBasicMaterial color={color} linewidth={2} />
+      </line>
+      {extA && (
+        <line ref={extALineRef}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" count={2} array={new Float32Array([...extA, ...start])} itemSize={3} />
+          </bufferGeometry>
+          <lineDashedMaterial color="#666" dashSize={0.04} gapSize={0.03} />
+        </line>
+      )}
+      {extB && (
+        <line ref={extBLineRef}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" count={2} array={new Float32Array([...extB, ...end])} itemSize={3} />
+          </bufferGeometry>
+          <lineDashedMaterial color="#666" dashSize={0.04} gapSize={0.03} />
+        </line>
+      )}
+      <group ref={startArrowRef} position={start} quaternion={[qStart.x, qStart.y, qStart.z, qStart.w]}>
+        <mesh>
+          <coneGeometry args={[0.02, 0.06, 6]} />
+          <meshBasicMaterial color={color} />
+        </mesh>
+      </group>
+      <group ref={endArrowRef} position={end} quaternion={[qEnd.x, qEnd.y, qEnd.z, qEnd.w]}>
+        <mesh>
+          <coneGeometry args={[0.02, 0.06, 6]} />
+          <meshBasicMaterial color={color} />
+        </mesh>
+      </group>
+      <DimLabel position={mid} text={text} />
+    </group>
   );
 });
 
@@ -864,10 +1266,15 @@ function PergolaSection({ cfg, mod, onFaceClick, stepId }) {
     const posts = [];
     for (const post of plan.extraPosts) {
       const positionM = post.position * FT_TO_M;
-      if (post.side === 'front') posts.push([x0 + positionM, z1]);
-      else if (post.side === 'back') posts.push([x0 + positionM, z0]);
-      else if (post.side === 'left') posts.push([x0, z0 + positionM]);
-      else posts.push([x1, z0 + positionM]);
+      let px, pz;
+      if (post.side === 'front') { px = x0 + positionM; pz = z1; }
+      else if (post.side === 'back') { px = x0 + positionM; pz = z0; }
+      else if (post.side === 'left') { px = x0; pz = z0 + positionM; }
+      else { px = x1; pz = z0 + positionM; }
+      // Only keep posts inside current pergola bounds
+      if (px >= x0 - 0.01 && px <= x1 + 0.01 && pz >= z0 - 0.01 && pz <= z1 + 0.01) {
+        posts.push([px, pz]);
+      }
     }
     return posts;
   }, [plan, x0, x1, z0, z1]);
@@ -929,14 +1336,34 @@ function PergolaSection({ cfg, mod, onFaceClick, stepId }) {
       );
 
       if (cfg.showDimensions) {
-        const segFt = (b - a) / FT_TO_M;
-        let pos;
-        const y = height + 0.5;
-        if (side === 'front') pos = [(a + b) / 2, y, mod.z + mod.d + 0.4];
-        else if (side === 'back') pos = [(a + b) / 2, y, mod.z - 0.4];
-        else if (side === 'left') pos = [mod.x - 0.4, y, (a + b) / 2];
-        else pos = [mod.x + mod.w + 0.4, y, (a + b) / 2];
-        labels.push({ key: `lab-${sectionId}-${side}-${segIdx}`, pos, text: `${segFt.toFixed(1)} ft` });
+        const spanFt = seg.end - seg.start;
+        const yDim = height + 0.35;
+        const yBeam = height;
+        let pStart, pEnd, eA, eB;
+        if (side === 'front') {
+          const z = mod.z + mod.d + 0.35;
+          pStart = [a, yDim, z]; pEnd = [b, yDim, z];
+          eA = [a, yBeam, z]; eB = [b, yBeam, z];
+        } else if (side === 'back') {
+          const z = mod.z - 0.35;
+          pStart = [a, yDim, z]; pEnd = [b, yDim, z];
+          eA = [a, yBeam, z]; eB = [b, yBeam, z];
+        } else if (side === 'left') {
+          const x = mod.x - 0.35;
+          pStart = [x, yDim, a]; pEnd = [x, yDim, b];
+          eA = [x, yBeam, a]; eB = [x, yBeam, b];
+        } else {
+          const x = mod.x + mod.w + 0.35;
+          pStart = [x, yDim, a]; pEnd = [x, yDim, b];
+          eA = [x, yBeam, a]; eB = [x, yBeam, b];
+        }
+        labels.push({
+          key: `post-${sectionId}-${side}-${segIdx}`,
+          isLine: true,
+          start: pStart, end: pEnd, extA: eA, extB: eB,
+          text: `${spanFt.toFixed(1)} ft`,
+          color: '#1565c0',
+        });
       }
     });
   });
@@ -956,16 +1383,16 @@ function PergolaSection({ cfg, mod, onFaceClick, stepId }) {
       {louvers.map((seg, i) => (
         <React.Fragment key={`segment-beams-${i}`}>
           {(!isAttached || attachedSide !== 'back') && (
-            <Beam position={[(seg.x0 + seg.x1) / 2, height + BEAM_THICK / 2, seg.z0]} args={[seg.x1 - seg.x0, BEAM_THICK, BEAM_THICK]} color={postColor} />
+            <Beam position={[(seg.x0 + seg.x1) / 2, height + BEAM_THICK / 2, seg.z0]} args={[seg.x1 - seg.x0 + 0.02, BEAM_THICK, BEAM_THICK]} color={postColor} />
           )}
           {(!isAttached || attachedSide !== 'front') && (
-            <Beam position={[(seg.x0 + seg.x1) / 2, height + BEAM_THICK / 2, seg.z1]} args={[seg.x1 - seg.x0, BEAM_THICK, BEAM_THICK]} color={postColor} />
+            <Beam position={[(seg.x0 + seg.x1) / 2, height + BEAM_THICK / 2, seg.z1]} args={[seg.x1 - seg.x0 + 0.02, BEAM_THICK, BEAM_THICK]} color={postColor} />
           )}
           {(!isAttached || attachedSide !== 'left') && (
-            <Beam position={[seg.x0, height + BEAM_THICK / 2, (seg.z0 + seg.z1) / 2]} args={[BEAM_THICK, BEAM_THICK, seg.z1 - seg.z0]} color={postColor} />
+            <Beam position={[seg.x0, height + BEAM_THICK / 2, (seg.z0 + seg.z1) / 2]} args={[BEAM_THICK, BEAM_THICK, seg.z1 - seg.z0 + 0.02]} color={postColor} />
           )}
           {(!isAttached || attachedSide !== 'right') && (
-            <Beam position={[seg.x1, height + BEAM_THICK / 2, (seg.z0 + seg.z1) / 2]} args={[BEAM_THICK, BEAM_THICK, seg.z1 - seg.z0]} color={postColor} />
+            <Beam position={[seg.x1, height + BEAM_THICK / 2, (seg.z0 + seg.z1) / 2]} args={[BEAM_THICK, BEAM_THICK, seg.z1 - seg.z0 + 0.02]} color={postColor} />
           )}
         </React.Fragment>
       ))}
@@ -980,9 +1407,21 @@ function PergolaSection({ cfg, mod, onFaceClick, stepId }) {
       ))}
 
       {segNodes}
-      {labels.map((l) => (
-        <DimLabel key={l.key} position={l.pos} text={l.text} />
-      ))}
+      {labels.map((l) =>
+        l.isLine ? (
+          <DimLine
+            key={l.key}
+            start={l.start}
+            end={l.end}
+            text={l.text}
+            extA={l.extA}
+            extB={l.extB}
+            color={l.color}
+          />
+        ) : (
+          <DimLabel key={l.key} position={l.pos} text={l.text} />
+        )
+      )}
 
       {/* Wall-mounted heaters for this section */}
       {(cfg.heaters || []).filter((h) => h.sectionId === sectionId).map((h, i) => {
@@ -1027,21 +1466,35 @@ function PergolaSection({ cfg, mod, onFaceClick, stepId }) {
         return <PostOutlet key={`outlet-${o.postKey}`} position={postPos} height={height} inwardDir={inwardDir} />;
       })}
 
-      {/* Overall section dimensions at base */}
+      {/* Overall section dimensions */}
       {cfg.showDimensions && (
         <>
-          <DimLabel
-            position={[(x0 + x1) / 2, 0.3, z1 + 0.6]}
+          {/* Length — offset forward above front beam */}
+          <DimLine
+            start={[x0, height + 0.6, z1 + 0.8]}
+            end={[x1, height + 0.6, z1 + 0.8]}
             text={`${section.length}′ Length`}
+            extA={[x0, height + 0.6, z1]}
+            extB={[x1, height + 0.6, z1]}
+            color="#c62828"
           />
-          <DimLabel
-            position={[x1 + 0.6, 0.3, (z0 + z1) / 2]}
+          {/* Width — offset right above side beam */}
+          <DimLine
+            start={[x1 + 0.8, height + 0.6, z0]}
+            end={[x1 + 0.8, height + 0.6, z1]}
             text={`${section.width}′ Width`}
+            extA={[x1, height + 0.6, z0]}
+            extB={[x1, height + 0.6, z1]}
+            color="#c62828"
           />
-          {/* Height dimension on corner post */}
-          <DimLabel
-            position={[x0 - 0.5, height / 2, z0 - 0.5]}
+          {/* Height — offset back from corner post */}
+          <DimLine
+            start={[x0 - 0.6, 0, z0 - 0.6]}
+            end={[x0 - 0.6, height, z0 - 0.6]}
             text={`${section.height}′ Height`}
+            extA={[x0, 0, z0 - 0.6]}
+            extB={[x0, height, z0 - 0.6]}
+            color="#2e7d32"
           />
         </>
       )}
@@ -1080,6 +1533,8 @@ const MemoizedPergolaSection = React.memo(PergolaSection, (prev, next) => {
     prev.cfg.postColor === next.cfg.postColor &&
     prev.cfg.louverColor === next.cfg.louverColor &&
     prev.cfg.louverRotation === next.cfg.louverRotation &&
+    prev.cfg.lightColor === next.cfg.lightColor &&
+    prev.cfg.isNight === next.cfg.isNight &&
     prev.cfg.editMode === next.cfg.editMode &&
     prev.cfg.showDimensions === next.cfg.showDimensions &&
     prev.cfg.walls === next.cfg.walls &&
@@ -1103,6 +1558,9 @@ export default function PergolaModule({ cfg, modules, onFaceClick, stepId }) {
   const postColor = useMemo(() => 
     POST_COLORS.find((c) => c.id === cfg.postColor)?.hex || '#222', 
   [cfg.postColor]);
+
+  // Shared animated light material for all light strips (perimeter + junctions)
+  const lightMat = useAnimatedLightMaterial(lightHex, 1.6, cfg);
 
   // Render house wall(s) ONCE at module level (not per section) to avoid duplication
   const houseWallSegments = useMemo(() => getHouseWallSegments(cfg, modules), [cfg, modules]);
@@ -1163,7 +1621,119 @@ export default function PergolaModule({ cfg, modules, onFaceClick, stepId }) {
         <Post key={`structural-${p.id}`} position={p.pos} height={avgHeight} color={postColor} />
       ))}
 
-      {cfg.lightColor !== 'none' && <PerimeterLightStrip modules={modules} color={lightHex} intensity={1.6} cfg={cfg} />}
+      {cfg.lightColor !== 'none' && (
+        <>
+          <PerimeterLightStrip modules={modules} mat={lightMat} cfg={cfg} />
+          {/* L-shape junction light strip on support beam if present */}
+          {cfg.layout === 'l-shape' && modules.length === 2 && (() => {
+            const m1 = modules[0];
+            const m2 = modules[1];
+            const configId = cfg.lShapeConfig || 'right-back';
+            const y = avgHeight + BEAM_THICK - 0.10;
+            const lights = [];
+            
+            // Calculate shared edge based on L-shape config
+            if (configId === 'right-back' || configId === 'right-front') {
+              const sharedX = m1.x + m1.w; // Section 1's right edge = Section 2's left edge
+              const zStart = Math.max(m1.z, m2.z);
+              const zEnd = Math.min(m1.z + m1.d, m2.z + m2.d);
+              const len = zEnd - zStart - BEAM_THICK;
+              if (len > 0) {
+                lights.push(
+                  <group key="lshape-junction-light">
+                    <mesh position={[sharedX, y, (zStart + zEnd) / 2]} rotation={[0, 0, 0]}>
+                      <boxGeometry args={[0.12, 0.05, len]} />
+                      <primitive object={lightMat} attach="material" />
+                    </mesh>
+                  </group>
+                );
+              }
+            } else if (configId === 'left-back' || configId === 'left-front') {
+              const sharedX = m1.x; // Section 1's left edge = Section 2's right edge
+              const zStart = Math.max(m1.z, m2.z);
+              const zEnd = Math.min(m1.z + m1.d, m2.z + m2.d);
+              const len = zEnd - zStart - BEAM_THICK;
+              if (len > 0) {
+                lights.push(
+                  <group key="lshape-junction-light">
+                    <mesh position={[sharedX, y, (zStart + zEnd) / 2]} rotation={[0, 0, 0]}>
+                      <boxGeometry args={[0.12, 0.05, len]} />
+                      <primitive object={lightMat} attach="material" />
+                    </mesh>
+                  </group>
+                );
+              }
+            }
+            
+            return lights.length > 0 ? <>{lights}</> : null;
+          })()}
+          {/* Louver split junction lights for all sections */}
+          {(() => {
+            const y = avgHeight + BEAM_THICK - 0.10;
+            const inset = 0.03;
+            const lights = [];
+            
+            modules.forEach((mod) => {
+              const modSets = louverSetCount(mod);
+              if (modSets > 1) {
+                const mx0 = mod.x, mx1 = mod.x + mod.w;
+                const mz0 = mod.z, mz1 = mod.z + mod.d;
+                const mShorterIsZ = mod.width <= mod.length;
+                
+                if (mShorterIsZ) {
+                  // Louvers run along x, split along x — beam runs along z, light both sides
+                  const span = mx1 - mx0;
+                  const segLen = span / modSets;
+                  for (let i = 1; i < modSets; i++) {
+                    const splitX = mx0 + i * segLen;
+                    lights.push(
+                      <group key={`louver-split-${mod.sectionId}-${i}-left`}>
+                        <mesh position={[splitX - BEAM_THICK / 2 - inset, y, (mz0 + mz1) / 2]} rotation={[0, 0, 0]}>
+                          <boxGeometry args={[0.08, 0.05, mz1 - mz0 - BEAM_THICK]} />
+                          <primitive object={lightMat} attach="material" />
+                        </mesh>
+                      </group>
+                    );
+                    lights.push(
+                      <group key={`louver-split-${mod.sectionId}-${i}-right`}>
+                        <mesh position={[splitX + BEAM_THICK / 2 + inset, y, (mz0 + mz1) / 2]} rotation={[0, 0, 0]}>
+                          <boxGeometry args={[0.08, 0.05, mz1 - mz0 - BEAM_THICK]} />
+                          <primitive object={lightMat} attach="material" />
+                        </mesh>
+                      </group>
+                    );
+                  }
+                } else {
+                  // Louvers run along z, split along z — beam runs along x, light both sides
+                  const span = mz1 - mz0;
+                  const segLen = span / modSets;
+                  for (let i = 1; i < modSets; i++) {
+                    const splitZ = mz0 + i * segLen;
+                    lights.push(
+                      <group key={`louver-split-${mod.sectionId}-${i}-back`}>
+                        <mesh position={[(mx0 + mx1) / 2, y, splitZ - BEAM_THICK / 2 - inset]} rotation={[0, 0, 0]}>
+                          <boxGeometry args={[mx1 - mx0 - BEAM_THICK, 0.05, 0.08]} />
+                          <primitive object={lightMat} attach="material" />
+                        </mesh>
+                      </group>
+                    );
+                    lights.push(
+                      <group key={`louver-split-${mod.sectionId}-${i}-front`}>
+                        <mesh position={[(mx0 + mx1) / 2, y, splitZ + BEAM_THICK / 2 + inset]} rotation={[0, 0, 0]}>
+                          <boxGeometry args={[mx1 - mx0 - BEAM_THICK, 0.05, 0.08]} />
+                          <primitive object={lightMat} attach="material" />
+                        </mesh>
+                      </group>
+                    );
+                  }
+                }
+              }
+            });
+            
+            return lights.length > 0 ? <>{lights}</> : null;
+          })()}
+        </>
+      )}
     </group>
   );
 }

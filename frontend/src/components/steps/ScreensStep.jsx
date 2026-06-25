@@ -86,33 +86,107 @@ export default function ScreensStep({ cfg, setCfg, stepNum, total }) {
         total={total}
         title="Add screens"
         subtitle={cfg.layout === 'l-shape' 
-          ? "Privacy screens can be placed on ALL outer sides of the L-shape. They can't share a segment with a wall."
-          : "Privacy screens fit between two posts. They can't share a segment with a wall."}
+          ? "Fabric screens go on the outside edges. You can put them on all outer sides."
+          : "Fabric screens go between two posts. You can't put a screen and a wall in the same spot."}
       />
 
-      <div className="pb-clickhint mb-5 flex gap-2 items-start" data-testid="screen-clickhint">
-        <MousePointerClick size={16} className="mt-0.5 flex-shrink-0" />
+      {/* 1. Color */}
+      <div className="mb-6">
+        <p className="text-sm font-semibold text-[#14171a] mb-3">Screen Color</p>
+        {cfg.layout === '10x12-kit' ? (
+          <div className="pb-card p-4">
+            <p className="pb-display text-xl font-semibold">White</p>
+            <p className="text-xs text-[#5b6368] mt-1">Locked — Standard Kit</p>
+          </div>
+        ) : (
+          <ColorSwatchRow
+            colors={SCREEN_COLORS}
+            value={cfg.screenColor}
+            onChange={(id) => setCfg((c) => ({ ...c, screenColor: id }))}
+            testIdPrefix="screen-color"
+          />
+        )}
+      </div>
+
+      {/* 2. Operation */}
+      <div className="mb-6">
+        <p className="text-sm font-semibold text-[#14171a] mb-3">How do they open?</p>
+        {cfg.layout === '10x12-kit' ? (
+          <div className="pb-card p-4">
+            <p className="pb-display text-xl font-semibold">Manual</p>
+            <p className="text-xs text-[#5b6368] mt-1">Fixed — Standard Kit</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { id: 'manual', label: 'Manual', desc: 'Hand-crank control' },
+                { id: 'motorized', label: 'Motorized', desc: 'Remote or app control' },
+              ].map((o) => (
+                <button
+                  type="button"
+                  key={o.id}
+                  onClick={() => setCfg((c) => ({ ...c, screenOperation: o.id }))}
+                  className={`relative pb-card p-4 text-left transition-all ${
+                    (cfg.screenOperation || 'manual') === o.id
+                      ? 'bg-[#e6f3eb] border-[#1a7a4b] shadow-sm'
+                      : 'bg-white hover:border-[#1a7a4b]'
+                  }`}
+                >
+                  {(cfg.screenOperation || 'manual') === o.id && (
+                    <span className="absolute top-3 right-3">
+                      <Check size={16} className="text-[#1a7a4b]" />
+                    </span>
+                  )}
+                  <p className="text-base font-semibold text-[#14171a]">{o.label}</p>
+                  <p className={`text-xs mt-1 ${(cfg.screenOperation || 'manual') === o.id ? 'text-[#1a7a4b]' : 'text-[#5b6368]'}`}>
+                    {o.desc}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            {cfg.screenOperation === 'motorized' && (
+              <div className="mt-3 flex gap-2">
+                {[
+                  { id: 'remote', label: 'Remote' },
+                  { id: 'app', label: 'App' },
+                ].map((c) => (
+                  <button
+                    type="button"
+                    key={c.id}
+                    onClick={() => setCfg((cf) => ({ ...cf, screenControlType: c.id }))}
+                    className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                      (cfg.screenControlType || 'remote') === c.id
+                        ? 'bg-[#1a7a4b] text-white border-[#1a7a4b]'
+                        : 'bg-white text-[#14171a] border-[#d8d8d4] hover:border-[#14171a]'
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* 3. Sides */}
+      <div className="pb-clickhint mb-5 flex gap-3 items-start" data-testid="screen-clickhint">
+        <MousePointerClick size={24} className="mt-0.5 flex-shrink-0 text-[#c98a2a]" />
         <span>
-          Click any side in the <strong>3D preview</strong> to add or remove a screen — or use the quick buttons below.
-          {cfg.layout === 'l-shape' && (
-            <span className="block text-xs text-[#5b6368] mt-1">
-              Screens can be placed on ALL outer sides. Hover over a side to see placement options.
-            </span>
-          )}
+          <strong>Tap a side on the 3D picture</strong> to add or remove a screen — or use the quick buttons below.
         </span>
       </div>
 
-      {/* For L-shape, show unified outer perimeter segments */}
       {cfg.layout === 'l-shape' ? (
         <LShapeScreenButtons cfg={cfg} setCfg={setCfg} />
       ) : (
-        /* Horizontal layout: per-section segment buttons */
-        cfg.sections.map((section, sectionIdx) => {
+        cfg.sections.map((section) => {
           const sectionScreens = cfg.screens.filter((s) => s.sectionId === section.id);
-
           return (
             <div key={section.id} className="mb-6">
-              <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3">Quick add screen to a segment</p>
+              <p className="text-sm font-semibold text-[#14171a] mb-3">Quick add screen</p>
               <div className="space-y-3">
                 {SIDES.map((s) => {
                   const isAttached = cfg.style === 'attached' && cfg.attachedSide === s.id;
@@ -168,62 +242,6 @@ export default function ScreensStep({ cfg, setCfg, stepNum, total }) {
           <p className="text-xs text-[#5b6368] mt-3">Screen specifications are fixed for the Standard Kit.</p>
         </div>
       )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-        <div>
-          <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3">Screen color</p>
-          {cfg.layout === '10x12-kit' ? (
-            <div className="pb-card p-4">
-              <p className="pb-display text-xl font-semibold">White</p>
-              <p className="text-xs text-[#5b6368] mt-1">Locked — Standard Kit</p>
-            </div>
-          ) : (
-            <ColorSwatchRow
-              colors={SCREEN_COLORS}
-              value={cfg.screenColor}
-              onChange={(id) => setCfg((c) => ({ ...c, screenColor: id }))}
-              testIdPrefix="screen-color"
-            />
-          )}
-        </div>
-        <div>
-          <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3">Operation</p>
-          {cfg.layout === '10x12-kit' ? (
-            <div className="pb-card p-4">
-              <p className="pb-display text-xl font-semibold">Manual</p>
-              <p className="text-xs text-[#5b6368] mt-1">Fixed — Standard Kit</p>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              {[
-                { id: 'manual', label: 'Manual', desc: 'Hand-crank control' },
-                { id: 'motorized', label: 'Motorized', desc: 'Remote control' },
-              ].map((o) => (
-                <button
-                  type="button"
-                  key={o.id}
-                  onClick={() => setCfg((c) => ({ ...c, screenOperation: o.id }))}
-                  className={`relative pb-card px-4 py-3 text-left min-w-[100px] transition-all ${
-                    (cfg.screenOperation || 'manual') === o.id
-                      ? 'bg-[#e6f3eb] border-[#1a7a4b] shadow-sm'
-                      : 'bg-white hover:border-[#1a7a4b]'
-                  }`}
-                >
-                  {(cfg.screenOperation || 'manual') === o.id && (
-                    <span className="absolute top-2 right-2">
-                      <Check size={14} className="text-[#1a7a4b]" />
-                    </span>
-                  )}
-                  <p className="text-sm font-semibold text-[#14171a]">{o.label}</p>
-                  <p className={`text-[11px] mt-0.5 ${(cfg.screenOperation || 'manual') === o.id ? 'text-[#1a7a4b]' : 'text-[#5b6368]'}`}>
-                    {o.desc}
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
 
       {cfg.screens.length > 0 && (
         <div className="mt-7">

@@ -1,6 +1,6 @@
 import React, { Suspense, useMemo, useRef, useEffect } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, ContactShadows, Environment, Sky } from '@react-three/drei';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { OrbitControls, ContactShadows, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import PergolaModule from './PergolaModule';
 import { getModules, getBoundingBox } from '../../utils/pergolaLayout';
@@ -329,6 +329,12 @@ function GroundSurface({ size, groundType }) {
     case 'gravel': return <GravelGround size={size} />;
     case 'concrete': return <ConcreteGround size={size} />;
     case 'paving': return <PaverDeck size={size} />;
+    case 'none': return (
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+        <planeGeometry args={[size * 2, size * 2]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={1} metalness={0} />
+      </mesh>
+    );
     case 'grass':
     default: return <GrassGround size={size} />;
   }
@@ -449,29 +455,29 @@ function PerimeterLights({ modules, wallHeight, isNight, cfg }) {
     hasRight = s === 'left-right' || s === 'all';
   }
 
-  // Place lights at corners and along walls
+  // Place lights at low ground level to avoid louver reflections
   const lights = [];
-  const lightY = wallHeight + 0.5;
+  const lightY = 0.3; // Near ground, below louvers
   const spacing = 4; // meters between lights
 
   if (hasBack) {
     for (let x = minX; x <= maxX; x += spacing) {
-      lights.push([x, lightY, minZ - 0.3]);
+      lights.push([x, lightY, minZ - 0.5]);
     }
   }
   if (hasFront) {
     for (let x = minX; x <= maxX; x += spacing) {
-      lights.push([x, lightY, maxZ + 0.3]);
+      lights.push([x, lightY, maxZ + 0.5]);
     }
   }
   if (hasLeft) {
     for (let z = minZ; z <= maxZ; z += spacing) {
-      lights.push([minX - 0.3, lightY, z]);
+      lights.push([minX - 0.5, lightY, z]);
     }
   }
   if (hasRight) {
     for (let z = minZ; z <= maxZ; z += spacing) {
-      lights.push([maxX + 0.3, lightY, z]);
+      lights.push([maxX + 0.5, lightY, z]);
     }
   }
 
@@ -479,30 +485,88 @@ function PerimeterLights({ modules, wallHeight, isNight, cfg }) {
     <>
       {lights.map((pos, i) => (
         <group key={i}>
-          {/* Downward spot for visible ground pool */}
-          <spotLight
-            position={pos}
-            target-position={[pos[0], 0, pos[2]]}
-            intensity={2.0}
-            angle={Math.PI / 5}
-            penumbra={0.6}
-            distance={10}
-            decay={2}
-            color="#fff8e0"
-            castShadow
-          />
-          {/* Ambient point glow around fixture */}
+          {/* Soft upward/ambient point light for ground glow */}
           <pointLight
             position={pos}
-            intensity={1.5}
-            distance={8}
+            intensity={0.8}
+            distance={6}
             decay={2}
-            color="#fff8e0"
+            color="#e8dcc8"
           />
         </group>
       ))}
     </>
   );
+}
+
+function CameraController({ preset, targetY, maxDim }) {
+  const { camera, controls, invalidate } = useThree();
+  const state = useRef('idle'); // 'idle' | 'entering' | 'active' | 'exiting'
+  const targetPos = useMemo(() => new THREE.Vector3(), []);
+  const lookAtTarget = useMemo(() => new THREE.Vector3(), []);
+  const originalPos = useMemo(() => new THREE.Vector3(), []);
+  const originalTarget = useMemo(() => new THREE.Vector3(), []);
+  const originalUp = useMemo(() => new THREE.Vector3(), []);
+  const baseSaved = useRef(false);
+  const lastPreset = useRef(null);
+
+  useFrame(() => {
+    if (!controls || !camera) return;
+
+    // Detect preset change and reset state for smooth transitions
+    if (preset !== lastPreset.current) {
+      lastPreset.current = preset;
+      if (preset) state.current = 'idle';
+    }
+
+    // Save base camera state once before any preset animation
+    if (preset && !baseSaved.current) {
+      originalPos.copy(camera.position);
+      originalTarget.copy(controls.target);
+      originalUp.copy(camera.up);
+      baseSaved.current = true;
+    }
+
+    if (preset === 'top-down') {
+      if (state.current === 'idle') {
+        const dist = Math.max(
+          camera.position.distanceTo(new THREE.Vector3(0, targetY, 0)),
+          maxDim * 1.2 + 2
+        );
+        targetPos.set(0, dist, 0);
+        lookAtTarget.set(0, targetY, 0);
+        controls.enabled = false;
+        camera.up.set(0, 0, -1);
+        state.current = 'entering';
+      }
+      if (state.current === 'entering' || state.current === 'active') {
+        camera.position.lerp(targetPos, 0.12);
+        camera.lookAt(lookAtTarget);
+        controls.target.lerp(lookAtTarget, 0.12);
+        if (camera.position.distanceTo(targetPos) < 0.05) {
+          state.current = 'active';
+        }
+        invalidate();
+      }
+    } else {
+      if (state.current === 'entering' || state.current === 'active') {
+        controls.enabled = true;
+        camera.up.copy(originalUp);
+        state.current = 'exiting';
+        baseSaved.current = false;
+      }
+      if (state.current === 'exiting') {
+        camera.position.lerp(originalPos, 0.06);
+        controls.target.lerp(originalTarget, 0.06);
+        if (camera.position.distanceTo(originalPos) < 0.1) {
+          state.current = 'idle';
+        }
+        invalidate();
+      }
+    }
+  });
+
+  return null;
 }
 
 export function Scene({ cfg, onFaceClick, stepId }) {
@@ -519,19 +583,18 @@ export function Scene({ cfg, onFaceClick, stepId }) {
   return (
     <group position={[-cx, 0, -cz]}>
       <GroundSurface size={50} groundType={cfg.groundType} />
-      {!isNight && <Clouds />}
+      {!isNight && cfg.groundType !== 'none' && <Clouds />}
       {/* Day/Night lighting */}
       {isNight ? (
         <>
           <ambientLight intensity={0.15} />
-          <directionalLight position={[5, 10, 5]} intensity={0.4} castShadow />
-          <spotLight position={[0, 10, 0]} intensity={0.5} angle={Math.PI / 2} penumbra={0.5} />
-          <PerimeterLights modules={modules} wallHeight={avgH} isNight={isNight} cfg={cfg} />
+          <directionalLight position={[2, 8, 2]} intensity={0.15} />
+          <directionalLight position={[4, 2, 4]} intensity={0.5} color="#c8d4e0" />
         </>
       ) : (
         <>
           <ambientLight intensity={0.6} />
-          <directionalLight position={[15, 20, 10]} intensity={1.8} castShadow shadow-mapSize={[4096, 4096]} />
+          <directionalLight position={[15, 20, 10]} intensity={1.8} />
           <directionalLight position={[-10, 12, -8]} intensity={0.6} />
           <spotLight position={[0, 15, -20]} intensity={0.5} angle={Math.PI / 4} penumbra={0.5} target-position={[0, 0, 0]} />
           <hemisphereLight args={['#fff8e7', '#5a4a3a', 0.6]} />
@@ -555,49 +618,48 @@ export default function PergolaScene({ cfg, onFaceClick, stepId }) {
 
   return (
     <Canvas
-      shadows
       camera={{ position: [cam * 0.9, cam * 0.5, cam], fov: 42 }}
       gl={{ 
         antialias: true, 
         preserveDrawingBuffer: true, 
-        powerPreference: 'high-performance',
-        shadowMapType: THREE.PCFSoftShadowMap
+        powerPreference: 'high-performance'
       }}
-      dpr={[1, 1.5]} // Reduced from [1, 1.75] for better performance
-      frameloop="demand" // Only render when needed
+      dpr={[1, 1.5]}
+      frameloop="demand"
+      style={{ width: '100%', height: '100%', display: 'block' }}
     >
       <PerformanceOptimizer />
       
-      <color attach="background" args={cfg.isNight ? ['#0a0a15'] : ['#87CEEB']} />
-      <fog attach="fog" args={cfg.isNight ? ['#1a1a2e', 20, 80] : ['#c8e0f0', 30, 100]} />
+      <color attach="background" args={cfg.groundType === 'none' ? ['#f5f5f5'] : cfg.isNight ? ['#0a0a15'] : ['#87CEEB']} />
+      {cfg.groundType !== 'none' && <fog attach="fog" args={cfg.isNight ? ['#1a1a2e', 20, 80] : ['#c8e0f0', 30, 100]} />}
 
       <Suspense fallback={null}>
-        {/* Sky - day or night */}
-        {cfg.isNight ? (
-          <Sky 
-            distance={450000} 
-            sunPosition={[0, -10, 0]} 
-            inclination={0} 
-            azimuth={0.25} 
-            turbidity={20} 
-            rayleigh={0.5}
-            mieCoefficient={0.02}
-            mieDirectionalG={0.8}
-          />
-        ) : (
-          <Sky
-            distance={450000}
-            sunPosition={[100, 80, -50]}
-            inclination={0.5}
-            azimuth={0.3}
-            turbidity={2}
-            rayleigh={1.2}
-            mieCoefficient={0.003}
-            mieDirectionalG={0.8}
-          />
+        {/* Sky - day or night, hidden for clean studio background */}
+        {cfg.groundType !== 'none' && (
+          cfg.isNight ? (
+            <Sky 
+              distance={450000} 
+              sunPosition={[0, -10, 0]} 
+              inclination={0} 
+              azimuth={0.25} 
+              turbidity={20} 
+              rayleigh={0.5}
+              mieCoefficient={0.02}
+              mieDirectionalG={0.8}
+            />
+          ) : (
+            <Sky
+              distance={450000}
+              sunPosition={[100, 80, -50]}
+              inclination={0.5}
+              azimuth={0.3}
+              turbidity={2}
+              rayleigh={1.2}
+              mieCoefficient={0.003}
+              mieDirectionalG={0.8}
+            />
+          )
         )}
-        {/* Studio environment for aluminum reflections */}
-        <Environment preset={cfg.isNight ? "night" : "city"} background={false} />
         <Scene cfg={cfg} onFaceClick={onFaceClick} stepId={stepId} />
         <ContactShadows position={[0, 0.002, 0]} opacity={0.6} scale={40} blur={3} far={8} />
       </Suspense>
@@ -605,13 +667,16 @@ export default function PergolaScene({ cfg, onFaceClick, stepId }) {
       <OrbitControls
         enablePan={false}
         enableDamping
-        dampingFactor={0.08}
+        dampingFactor={0.15}
+        rotateSpeed={0.6}
+        zoomSpeed={0.7}
         minDistance={4}
         maxDistance={28}
-        minPolarAngle={0.2}
-        maxPolarAngle={Math.PI / 2.1}
+        minPolarAngle={cfg.cameraPreset === 'top-down' ? 0 : 0}
+        maxPolarAngle={cfg.cameraPreset === 'top-down' ? 0.001 : Math.PI - 0.05}
         target={[0, targetY, 0]}
       />
+      <CameraController preset={cfg.cameraPreset} targetY={targetY} maxDim={maxDim} />
     </Canvas>
   );
 }

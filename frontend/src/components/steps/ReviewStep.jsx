@@ -300,7 +300,7 @@ export default function ReviewStep({ cfg, setCfg, stepNum, total, onJump, compar
   rows.push({ label: 'Layout', value: `${layoutLabel} (${sectionCount} section${sectionCount > 1 ? 's' : ''})`, stepId: 'layout' });
 
   // Ground type
-  const groundMap = { gravel: 'Gravel', grass: 'Grass / Lawn', concrete: 'Concrete Slab', paving: 'Paving Stones' };
+  const groundMap = { gravel: 'Gravel', grass: 'Grass / Lawn', concrete: 'Concrete Slab', paving: 'Paving Stones', none: 'None (White)' };
   rows.push({ label: 'Ground Surface', value: groundMap[cfg.groundType] || cfg.groundType, stepId: 'style' });
 
   // Style

@@ -129,8 +129,8 @@ export default function WallsStep({ cfg, setCfg, stepNum, total }) {
         total={total}
         title="Add walls"
         subtitle={cfg.layout === 'l-shape'
-          ? "Solid or slatted aluminum walls on outer perimeter. At least 1 side must remain open for entry."
-          : "Solid or slatted aluminum walls between posts. At least 1 exterior side must remain open for entry."}
+          ? "Solid or slatted walls around the outside. Leave at least one opening so you can walk in."
+          : "Solid or slatted walls between posts. Leave at least one side open for a doorway."}
       />
 
       {isKit && (
@@ -144,12 +144,12 @@ export default function WallsStep({ cfg, setCfg, stepNum, total }) {
         </div>
       )}
 
-      <div className="pb-clickhint mb-5 flex gap-2 items-start" data-testid="wall-clickhint">
-        <MousePointerClick size={16} className="mt-0.5 flex-shrink-0" />
+      <div className="pb-clickhint mb-5 flex gap-3 items-start" data-testid="wall-clickhint">
+        <MousePointerClick size={24} className="mt-0.5 flex-shrink-0 text-[#c98a2a]" />
         <span>
           {isKit
-            ? <>Click a side in the <strong>3D preview</strong> to place a wall.</>
-            : <>Pick a finish &amp; gap below, then click a side in the <strong>3D preview</strong> to place it.</>}
+            ? <>Tap a side on the <strong>3D picture</strong> to add a wall.</>
+            : <>Pick a color &amp; style below, then <strong>tap a side on the 3D picture</strong> to add a wall.</>}
         </span>
       </div>
 
@@ -218,6 +218,15 @@ export default function WallsStep({ cfg, setCfg, stepNum, total }) {
         </>
       )}
 
+      {cfg.layout === 'l-shape' && (
+        <div className="mb-5 p-3 bg-[#fef8e7] border border-[#f0d78c] rounded-lg flex items-start gap-2">
+          <Info size={16} className="text-[#c9a227] flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-[#5b6368]">
+            <strong className="text-[#14171a]">L-Shape note:</strong> Do not add walls on all sides — at least one segment must remain open for entry.
+          </p>
+        </div>
+      )}
+
       {cfg.sections.map((section, sectionIdx) => {
         const sectionWalls = cfg.walls.filter((w) => w.sectionId === section.id);
 
@@ -229,7 +238,7 @@ export default function WallsStep({ cfg, setCfg, stepNum, total }) {
               </h3>
             )}
 
-            <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3">Quick add wall to a segment</p>
+            <p className="text-sm font-semibold text-[#14171a] mb-3">Quick add wall</p>
             <div className="space-y-3">
               {SIDES.map((s) => {
                 // Check if this is the attached side

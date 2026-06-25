@@ -1,10 +1,16 @@
-import React from 'react';
-import { RotateCcw, RotateCw, Ruler, Sun, Moon } from 'lucide-react';
+import React, { useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { RotateCcw, RotateCw, Ruler, Sun, Moon, Eye, Maximize2, Minimize2 } from 'lucide-react';
 import PergolaScene from './pergola3d/PergolaScene';
 
 function clampRot(v) { return Math.max(0, Math.min(100, v)); }
 
 export default function PergolaViewer({ cfg, setCfg, allowEdit = false, stepId }) {
+  const wrapperRef = useRef(null);
+
+  const fs = cfg.fs || false;
+  const toggleFs = () => setCfg((c) => ({ ...c, fs: !c.fs }));
+
   const setMode = (m) => setCfg((c) => ({ ...c, editMode: c.editMode === m ? 'none' : m }));
   const toggleDims = () => setCfg((c) => ({ ...c, showDimensions: !c.showDimensions }));
   const tilt = (d) => setCfg((c) => ({ ...c, louverRotation: clampRot(c.louverRotation + d) }));
@@ -77,13 +83,42 @@ export default function PergolaViewer({ cfg, setCfg, allowEdit = false, stepId }
   };
 
   return (
-    <div className="pb-viewer-frame w-full h-full relative" data-testid="pergola-viewer">
+    <>
+    <div ref={wrapperRef} className="pb-viewer-frame w-full h-full relative" data-testid="pergola-viewer">
       <PergolaScene cfg={cfg} onFaceClick={handleFace} stepId={stepId} />
 
       {/* Live badge */}
       <div className="absolute top-4 left-4 px-3 py-1.5 bg-white/85 backdrop-blur-sm rounded-full border border-white/70 text-[10px] tracking-widest uppercase text-[#14171a] font-semibold flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-[#1a7a4b] animate-pulse" />
         Live 3D
+      </div>
+
+      {/* Fullscreen toggle */}
+      <button
+        type="button"
+        onClick={toggleFs}
+        className="absolute top-4 left-32 px-2.5 py-1.5 rounded-md bg-white/85 backdrop-blur-sm border border-white/70 text-[#5b6368] hover:text-[#14171a] hover:border-[#1a7a4b] transition-all flex items-center gap-1.5"
+        title="Fullscreen 3D"
+      >
+        <Maximize2 size={13} />
+        <span className="text-[10px] font-semibold uppercase tracking-wider hidden sm:inline">Full</span>
+      </button>
+
+      {/* Camera view toggle */}
+      <div className="absolute top-14 left-4">
+        <button
+          type="button"
+          onClick={() => setCfg((c) => ({ ...c, cameraPreset: c.cameraPreset === 'top-down' ? null : 'top-down' }))}
+          className={`px-2.5 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border shadow-sm backdrop-blur-sm transition-all flex items-center gap-1.5 ${
+            cfg.cameraPreset === 'top-down'
+              ? 'bg-[#e6f3eb] border-[#1a7a4b] text-[#1a7a4b]'
+              : 'bg-white/85 border-white/70 text-[#5b6368] hover:border-[#1a7a4b]'
+          }`}
+          title="Bird's eye view"
+        >
+          <Eye size={11} />
+          Top
+        </button>
       </div>
 
       {/* Dimensions chip */}
@@ -94,7 +129,6 @@ export default function PergolaViewer({ cfg, setCfg, allowEdit = false, stepId }
           </span>
         ))}
       </div>
-
 
       {/* Louver controls */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-[#ececea]" data-testid="louver-controls">
@@ -160,5 +194,93 @@ export default function PergolaViewer({ cfg, setCfg, allowEdit = false, stepId }
         </div>
       </div>
     </div>
-  );
+
+    {/* Fullscreen overlay — separate render tree, does not touch normal layout */}
+    {fs && createPortal(
+      <div className="fixed inset-0 z-[9999] bg-[#14171a] flex flex-col">
+        <div className="flex-1 relative w-full h-full">
+          <PergolaScene cfg={cfg} onFaceClick={handleFace} stepId={stepId} />
+
+          {/* Live badge */}
+          <div className="absolute top-4 left-4 px-3 py-1.5 bg-white/85 backdrop-blur-sm rounded-full border border-white/70 text-[10px] tracking-widest uppercase text-[#14171a] font-semibold flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#1a7a4b] animate-pulse" />
+            Live 3D
+          </div>
+
+          {/* Exit fullscreen */}
+          <button
+            type="button"
+            onClick={toggleFs}
+            className="absolute top-4 right-4 px-3 py-1.5 rounded-md bg-white/95 backdrop-blur-sm border border-white/80 text-[#14171a] hover:bg-[#e6f3eb] hover:border-[#1a7a4b] hover:text-[#1a7a4b] transition-all flex items-center gap-1.5 shadow-lg"
+          >
+            <Minimize2 size={13} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">Exit</span>
+          </button>
+
+          {/* Camera view toggle */}
+          <div className="absolute top-14 left-4">
+            <button
+              type="button"
+              onClick={() => setCfg((c) => ({ ...c, cameraPreset: c.cameraPreset === 'top-down' ? null : 'top-down' }))}
+              className={`px-2.5 py-1.5 rounded-md text-[10px] font-semibold uppercase tracking-wider border shadow-sm backdrop-blur-sm transition-all flex items-center gap-1.5 ${
+                cfg.cameraPreset === 'top-down'
+                  ? 'bg-[#e6f3eb] border-[#1a7a4b] text-[#1a7a4b]'
+                  : 'bg-white/85 border-white/70 text-[#5b6368] hover:border-[#1a7a4b]'
+              }`}
+              title="Bird's eye view"
+            >
+              <Eye size={11} />
+              Top
+            </button>
+          </div>
+
+          {/* Dimensions chip */}
+          <div className="absolute top-4 right-24 px-3 py-1.5 bg-[#14171a]/85 backdrop-blur-sm rounded-full text-white text-[11px] tracking-wider flex items-center gap-2 font-semibold pb-mono">
+            {cfg.sections.map((s, i) => (
+              <span key={s.id} className={i > 0 ? 'opacity-70' : ''}>
+                {i > 0 && '+ '}{s.length}′ × {s.width}′
+              </span>
+            ))}
+          </div>
+
+          {/* Louver controls */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-[#ececea]">
+            <span className="text-[10px] uppercase tracking-widest text-[#5b6368] font-semibold hidden sm:inline">Louvers</span>
+            <button onClick={() => tilt(-10)} className="w-10 h-10 md:w-8 md:h-8 rounded-full bg-[#fafaf7] hover:bg-[#1a7a4b] hover:text-white flex items-center justify-center" aria-label="Open louvers">
+              <RotateCcw size={15} />
+            </button>
+            <div className="text-xs font-bold w-10 text-center pb-mono">{Math.round(cfg.louverRotation)}%</div>
+            <button onClick={() => tilt(10)} className="w-10 h-10 md:w-8 md:h-8 rounded-full bg-[#fafaf7] hover:bg-[#1a7a4b] hover:text-white flex items-center justify-center" aria-label="Close louvers">
+              <RotateCw size={15} />
+            </button>
+          </div>
+
+          {/* Bottom controls */}
+          <div className="absolute bottom-6 right-6 flex items-center gap-2">
+            <button
+              onClick={() => setCfg(c => ({ ...c, isNight: !c.isNight }))}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-semibold uppercase tracking-wider border shadow-lg ${
+                cfg.isNight ? 'bg-[#1a1a2e] text-white border-transparent' : 'bg-white text-[#14171a] border-[#d8d8d4] hover:border-[#1a7a4b]'
+              }`}
+            >
+              {cfg.isNight ? <Moon size={13} /> : <Sun size={13} />}
+              {cfg.isNight ? 'Night' : 'Day'}
+            </button>
+            <button
+              onClick={toggleDims}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-semibold uppercase tracking-wider border shadow-lg ${
+                cfg.showDimensions ? 'bg-[#1a7a4b] text-white border-transparent' : 'bg-white text-[#14171a] border-[#d8d8d4] hover:border-[#1a7a4b]'
+              }`}
+            >
+              <Ruler size={13} /> {cfg.showDimensions ? 'Hide Dims' : 'Show Dims'}
+            </button>
+            <div className="px-3 py-2 bg-white/85 backdrop-blur-sm rounded-full border border-white/60 text-[10px] tracking-widest uppercase text-[#5b6368] font-semibold shadow-lg">
+              Drag · Scroll
+            </div>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+  </>);
 }

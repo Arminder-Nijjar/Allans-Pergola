@@ -2,7 +2,7 @@ import React from 'react';
 import { StepHeader } from './_shared';
 import { STYLES, SIDES, GROUND_TYPES } from '../../data/catalog';
 import { isSideFullyInterior } from '../../utils/pergolaLayout';
-import { Check, Shovel } from 'lucide-react';
+import { Check, Shovel, Home } from 'lucide-react';
 
 export default function StyleStep({ cfg, setCfg, stepNum, total }) {
   const handleGroundChange = (groundId) => {
@@ -55,8 +55,8 @@ export default function StyleStep({ cfg, setCfg, stepNum, total }) {
       <StepHeader
         stepNum={stepNum}
         total={total}
-        title="Choose your pergola style"
-        subtitle="A freestanding structure stands on its own. An attached pergola connects to an existing wall. The 10×12 Kit is a premium pre-configured option."
+        title="How does it sit?"
+        subtitle="Stands alone, attaches to your house, or pick the ready-made kit."
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {STYLES.map((s) => {
@@ -83,8 +83,9 @@ export default function StyleStep({ cfg, setCfg, stepNum, total }) {
 
       {cfg.style === 'attached' && (
         <div className="mt-6">
-          <p className="text-[11px] pb-mono uppercase tracking-widest text-[#5b6368] mb-2">
-            Which side attaches to the house wall?
+          <p className="text-sm font-semibold text-[#14171a] mb-2 flex items-center gap-2">
+            <Home size={16} className="text-[#1a7a4b]" />
+            Which side touches your house?
           </p>
           <div className="grid grid-cols-4 gap-2">
             {SIDES.map((s) => {

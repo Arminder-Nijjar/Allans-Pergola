@@ -174,8 +174,8 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
       <StepHeader
         stepNum={stepNum}
         total={total}
-        title={isKit ? 'Standard Kit' : 'Set your dimensions'}
-        subtitle={isKit ? '10×12 ft Standard Kit — dimensions are fixed.' : 'Both dimensions 8-30 ft. Only ONE can exceed 20 ft (the other locks at 20).'}
+        title={isKit ? 'Standard Kit' : 'How big is it?'}
+        subtitle={isKit ? '10×12 ft Standard Kit — size is already set.' : 'Length and width: 8 to 30 feet. Only one can go past 20 ft.'}
       />
 
       {isKit && (
@@ -243,10 +243,10 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
               type="button"
               key={o.id}
               onClick={() => setCfg((c) => ({ ...c, louverOperation: o.id }))}
-              className={`relative pb-card px-4 py-3 text-left min-w-[100px] transition-all flex-1 sm:flex-none ${
+              className={`relative pb-tile px-4 py-3 text-left min-w-[100px] transition-all flex-1 sm:flex-none ${
                 (cfg.louverOperation || 'manual') === o.id
-                  ? 'bg-[#e6f3eb] border-[#1a7a4b] shadow-sm'
-                  : 'bg-white hover:border-[#1a7a4b]'
+                  ? 'ring-2 ring-[#1a7a4b]/30 border-[#1a7a4b]'
+                  : ''
               }`}
             >
               {(cfg.louverOperation || 'manual') === o.id && (
@@ -257,19 +257,15 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
               <p className="text-sm font-semibold text-[#14171a]">
                 {o.label}
               </p>
-              <p className={`text-[11px] mt-0.5 ${(cfg.louverOperation || 'manual') === o.id ? 'text-[#1a7a4b]' : 'text-[#5b6368]'}`}>
+              <p className={`text-[11px] mt-0.5 ${(cfg.louverOperation || 'manual') === o.id ? 'text-[#1a7a4b]' : 'text-[#8a8f94]'}`}>
                 {o.desc}
               </p>
             </button>
           ))}
         </div>
-        <p className="text-xs text-[#5b6368] mt-3 bg-[#f8f9fa] border border-[#ececea] rounded-lg p-3">
-          This is a customer preference. We will confirm if motorized louvers are available for the chosen size.
-        </p>
-
-        {/* Control Type — only shown when motorized is selected */}
+        {/* Control Type — shown immediately when motorized is selected */}
         {cfg.louverOperation === 'motorized' && (
-          <div className="mt-4 pt-4 border-t border-[#ececea]">
+          <div className="mt-4">
             <p className="text-sm font-semibold text-[#14171a] mb-3">Control Type</p>
             <div className="flex flex-wrap gap-3">
               {[
@@ -280,10 +276,10 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
                   type="button"
                   key={o.id}
                   onClick={() => setCfg((c) => ({ ...c, louverControlType: o.id }))}
-                  className={`relative pb-card px-4 py-3 text-left min-w-[140px] transition-all flex-1 sm:flex-none ${
+                  className={`relative pb-tile px-4 py-3 text-left min-w-[140px] transition-all flex-1 sm:flex-none ${
                     (cfg.louverControlType || 'remote') === o.id
-                      ? 'bg-[#e6f3eb] border-[#1a7a4b] shadow-sm'
-                      : 'bg-white hover:border-[#1a7a4b]'
+                      ? 'ring-2 ring-[#1a7a4b]/30 border-[#1a7a4b]'
+                      : ''
                   }`}
                 >
                   {(cfg.louverControlType || 'remote') === o.id && (
@@ -292,7 +288,7 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
                     </span>
                   )}
                   <p className="text-sm font-semibold text-[#14171a]">{o.label}</p>
-                  <p className={`text-[11px] mt-0.5 ${(cfg.louverControlType || 'remote') === o.id ? 'text-[#1a7a4b]' : 'text-[#5b6368]'}`}>
+                  <p className={`text-[11px] mt-0.5 ${(cfg.louverControlType || 'remote') === o.id ? 'text-[#1a7a4b]' : 'text-[#8a8f94]'}`}>
                     {o.desc}
                   </p>
                 </button>
@@ -300,6 +296,10 @@ export default function DimensionsStep({ cfg, setCfg, stepNum, total }) {
             </div>
           </div>
         )}
+
+        <p className="text-xs text-[#8a8f94] mt-4 bg-[#f8f8f6] border border-[#eaeae6] rounded-xl p-3 leading-relaxed">
+          This is a customer preference. We will confirm if motorized louvers are available for the chosen size.
+        </p>
       </div>
 
     </div>
@@ -366,7 +366,7 @@ function SectionDimensions({ section, cfg, isActive, showAll, setCfg, onUpdate, 
             <DimensionField
               testId={`dim-length-${section.id}`}
               label="Length"
-              description={section.width > 20 ? "Max 20' (width is >20)" : "Front to back (8-30')"}
+              description={section.width > 20 ? "Max 20 ft (width is already big)" : "Front to back distance"}
               unit="ft"
               value={section.length}
               min={LIMITS.length.min}
@@ -378,7 +378,7 @@ function SectionDimensions({ section, cfg, isActive, showAll, setCfg, onUpdate, 
             <DimensionField
               testId={`dim-width-${section.id}`}
               label="Width"
-              description={section.length > 20 ? "Max 20' (length is >20)" : "Side to side (8-30')"}
+              description={section.length > 20 ? "Max 20 ft (length is already big)" : "Side to side distance"}
               unit="ft"
               value={section.width}
               min={LIMITS.width.min}
@@ -389,8 +389,8 @@ function SectionDimensions({ section, cfg, isActive, showAll, setCfg, onUpdate, 
             <div className="h-px bg-[#ececea] my-1" />
             <DimensionField
               testId={`dim-height-${section.id}`}
-              label={cfg.layout === 'l-shape' ? 'Height (synced)' : 'Height'}
-              description="Post height from ground to beam"
+              label={cfg.layout === 'l-shape' ? 'Height (same for both parts)' : 'Height'}
+              description="How tall are the posts?"
               unit="ft"
               value={section.height}
               min={LIMITS.height.min}

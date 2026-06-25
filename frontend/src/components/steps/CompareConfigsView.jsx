@@ -28,7 +28,7 @@ function buildSpecs(config) {
   return {
     layout: config.layout === 'l-shape' ? 'L-Shape' : config.layout === '10x12-kit' ? '10×12 Kit' : 'Horizontal',
     style: config.style === 'attached' ? 'Attached' : config.style === '10x12-kit' ? '10×12 Kit' : 'Freestanding',
-    ground: { gravel: 'Gravel', grass: 'Grass', concrete: 'Concrete', paving: 'Paving' }[config.groundType] || config.groundType,
+    ground: { gravel: 'Gravel', grass: 'Grass', concrete: 'Concrete', paving: 'Paving', none: 'None (White)' }[config.groundType] || config.groundType,
     size: config.sections.map(s => `${s.length}′×${s.width}′`).join(' + '),
     height: `${section?.height} ft`,
     frame: colorName(POST_COLORS, config.postColor),

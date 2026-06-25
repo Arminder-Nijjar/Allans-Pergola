@@ -76,8 +76,8 @@ export default function Stepper({ steps, current, onJump, compareState, onSwitch
         </div>
       ) : (
         /* Normal mode - show Compare button to start comparison */
-        <div className="flex items-center justify-between pb-2 border-b border-[#ececea]">
-          <span className="text-sm text-[#5b6368]">Build your pergola, then compare designs</span>
+        <div className="flex items-center justify-between pb-2 border-b border-[#eaeae6]">
+          <span className="text-sm text-[#8a8f94]">Build your pergola, then compare designs</span>
           <button
             onClick={() => onStartCompare && onStartCompare()}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all bg-[#1a7a4b] text-white hover:bg-[#145c3a] shadow-md"
@@ -146,13 +146,13 @@ export default function Stepper({ steps, current, onJump, compareState, onSwitch
                 {done ? <Check size={13} /> : i + 1}
               </span>
               <span
-                className={`text-[13px] uppercase tracking-wider whitespace-nowrap transition-colors ${
+                className={`text-[13px] whitespace-nowrap transition-colors ${
                   active
                     ? 'text-[#14171a] font-semibold'
                     : done
-                    ? 'text-[#1a7a4b]'
-                    : 'text-[#5b6368]'
-                } ${clickable && !active ? 'group-hover:text-[#1a7a4b] group-hover:font-semibold' : ''}`}
+                    ? 'text-[#1a7a4b] font-medium'
+                    : 'text-[#8a8f94]'
+                } ${clickable && !active ? 'group-hover:text-[#1a7a4b] group-hover:font-medium' : ''}`}
               >
                 {s.label}
               </span>
@@ -164,7 +164,7 @@ export default function Stepper({ steps, current, onJump, compareState, onSwitch
               {i < steps.length - 1 && (
                 <span
                   className={`w-8 h-px transition-colors ${
-                    done ? 'bg-[#1a7a4b]' : 'bg-[#d8d8d4]'
+                    done ? 'bg-[#1a7a4b]/40' : 'bg-[#e0e0dc]'
                   }`}
                 />
               )}

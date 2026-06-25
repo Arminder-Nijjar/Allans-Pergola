@@ -15,8 +15,8 @@ export default function FrameStep({ cfg, setCfg, stepNum, total }) {
       <StepHeader
         stepNum={stepNum}
         total={total}
-        title={isKit ? 'Standard Kit Colours' : 'Choose your colours'}
-        subtitle={isKit ? 'Colours are fixed for the Standard Kit.' : 'Choose powder-coated aluminum finishes for your pergola frame and louvers.'}
+        title={isKit ? 'Kit Colors' : 'Pick Colors'}
+        subtitle={isKit ? 'These colors are set for the Standard Kit.' : 'Pick the colors for your posts and roof slats.'}
       />
 
       {isKit && (
@@ -36,7 +36,7 @@ export default function FrameStep({ cfg, setCfg, stepNum, total }) {
         <>
           {/* Frame Color */}
           <div className="mb-8">
-            <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3">Frame Color</p>
+            <p className="text-sm font-semibold text-[#14171a] mb-3">Post & Frame Color</p>
             <ColorSwatchRow
               colors={POST_COLORS}
               value={cfg.postColor}
@@ -47,7 +47,7 @@ export default function FrameStep({ cfg, setCfg, stepNum, total }) {
 
           {/* Louver Color */}
           <div className="mb-6">
-            <p className="text-[10px] pb-mono uppercase tracking-widest text-[#5b6368] mb-3">Louver Color</p>
+            <p className="text-sm font-semibold text-[#14171a] mb-3">Roof Slat Color</p>
             <ColorSwatchRow
               colors={LOUVER_COLORS}
               value={cfg.louverColor}

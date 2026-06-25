@@ -50,6 +50,7 @@ export const GROUND_TYPES = [
   { id: 'grass', label: 'Grass / Lawn', desc: 'Natural turf — may require prep work before installation.' },
   { id: 'concrete', label: 'Concrete Slab', desc: 'Solid poured concrete — best for anchoring and stability.' },
   { id: 'paving', label: 'Paving Stones', desc: 'Interlocking pavers — level surface with good drainage.' },
+  { id: 'none', label: 'None (White)', desc: 'Clean white background — no ground surface.' },
 ];
 
 export const LAYOUTS = [
@@ -98,7 +99,7 @@ export const DEFAULT_CONFIG = {
   attachedSide: 'back',
   postColor: 'umbra-grey',
   louverColor: 'pure-white',
-  louverRotation: 100,
+  louverRotation: 50,
   lightColor: 'warm',
   screenColor: 'beige',
   screens: [],
@@ -107,6 +108,7 @@ export const DEFAULT_CONFIG = {
   walls: [],
   showDimensions: false,
   editMode: 'none',
+  cameraPreset: null,
   extraPostPositions: {},
   optionalExtraPosts: {}, // sectionId -> { side: count } for accessory posts
   removedPostKeys: [], // array of post keys user has removed from view
@@ -117,9 +119,11 @@ export const DEFAULT_CONFIG = {
   kitLouverOperation: 'motorized',
   kitLouverControlType: 'remote', // 'remote' or 'app' for kits
   screenOperation: 'manual',
+  screenControlType: 'remote', // 'remote' or 'app' (only applies when motorized)
   kitLightSides: 'front-back',
   addOns: {},
-  groundType: 'gravel',
+  fs: false,
+  groundType: 'none',
   heaters: [], // { sectionId, side }[] for wall-mounted heater placement
   outlets: [], // { sectionId, postKey }[] for outlet placement on posts
   sitePhotos: [], // uploaded site photos (e.g., backyard, patio)

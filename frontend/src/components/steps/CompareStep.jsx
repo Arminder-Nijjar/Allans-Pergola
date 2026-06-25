@@ -63,7 +63,7 @@ function buildReviewData(config) {
   return {
     layout: config.layout === 'l-shape' ? 'L-Shape' : config.layout === '10x12-kit' ? '10×12 Standard Kit' : 'Horizontal',
     style: config.style === 'attached' ? `Attached (${config.attachedSide})` : config.style === '10x12-kit' ? '10×12 Kit' : 'Freestanding',
-    ground: { gravel: 'Gravel', grass: 'Grass / Lawn', concrete: 'Concrete Slab', paving: 'Paving Stones' }[config.groundType] || config.groundType,
+    ground: { gravel: 'Gravel', grass: 'Grass / Lawn', concrete: 'Concrete Slab', paving: 'Paving Stones', none: 'None (White)' }[config.groundType] || config.groundType,
     section1: config.sections[0] ? `${config.sections[0].length}′×${config.sections[0].width}′×${config.sections[0].height}′` : '-',
     section2: config.sections[1] ? `${config.sections[1].length}′×${config.sections[1].width}′×${config.sections[1].height}′` : '-',
     frame: colorName(POST_COLORS, config.postColor),

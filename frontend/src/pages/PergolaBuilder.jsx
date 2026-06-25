@@ -93,6 +93,10 @@ export default function PergolaBuilder() {
   const isCompareView = step?.id === 'review' && compareState?.showCompareView && compareState?.firstConfig && compareState?.secondConfig;
 
   const next = () => {
+    // After lights step, reset camera to original angle
+    if (step?.id === 'lights') {
+      setCfg((c) => ({ ...c, cameraPreset: null }));
+    }
     setStepIdx((i) => {
       const nextI = Math.min(STEPS.length - 1, i + 1);
       setMaxVisitedStep((m) => Math.max(m, nextI));

@@ -859,7 +859,7 @@ function useAnimatedLightMaterial(color, intensity, cfg) {
       emissiveIntensity: intensity,
       toneMapped: false,
     });
-  }, []);
+  }, [color, intensity]);
 
   const isRgbRef = useRef(false);
   const tRef = useRef(0);
